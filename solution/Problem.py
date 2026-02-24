@@ -15,7 +15,6 @@ class Problem():
     has_ran                       : bool
     has_results                   : bool
     is_ready_to_run               : bool
-    fun_val                       : float
     result                        : np.ndarray
     constraint_matrix             : np.ndarray
     constraint_low                : List[float]

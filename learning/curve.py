@@ -35,6 +35,7 @@ class Curve():
 		fig.plot(timestamps, values)
 		if full is True:
 			fig.plot(self.origin_timestamp, self.origin_points)
+			
 def get_full_curve(times: List[int], data: List[int], period : int, base_index : int):
 	#we assume the list is ordered by time ascending
 	current_list = []

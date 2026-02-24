@@ -91,7 +91,7 @@ class ELFE_ChauffageAsservi(ELFE_Chauffage):
 	delta_temp_maximale_temp_demandee          : int
 	puissance                                  : int
 	modele_thermique_id                        : int
-	mesures_puissance_elec_id                   : int
+	mesures_puissance_elec_id                  : int
 	mesure_temperature_id                      : int
 
 @serializableThroughDatabase

@@ -45,7 +45,7 @@ class MachineConsumer(Consumer_interface):
         end_time = mini(self.end_time, calculationParams.end + calculationParams.step_size)
         step_count = len(self.profile)
         return {
-            "start_time"  :start_time,
+            "start_time"  : start_time,
             "end_time"    : end_time,
             "steps_count" : step_count
 

@@ -7,10 +7,10 @@ from database.query import fetch, execute_queries
 from credentials.db_credentials import db_credentials
 from solution.Calculation_Params import CalculationParams
 from solution.Problem import Problem
-from solution.Consumer_interface import Consumer_interface
 from typing import List
 from datetime import datetime
 from datetime import timezone
+from solution.Consumer_interface import Consumer_interface
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.ConsumerTypes.HeaterConsumer import HeaterConsumer
 from solution.ConsumerTypes.MachineConsumer import MachineConsumer

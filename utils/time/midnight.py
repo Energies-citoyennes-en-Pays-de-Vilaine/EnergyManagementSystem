@@ -6,7 +6,7 @@ def get_midnight_date(timestamp : int) -> datetime:
 	midnight : datetime = date - timedelta(0, date.second + date.hour * 3600 + date.minute * 60)
 	return midnight
 
-def get_midnight_timestamp(timestamp : int) -> datetime:
+def get_midnight_timestamp(timestamp : int) -> int:
 	date : datetime = datetime.fromtimestamp(timestamp, timezone.utc)
 	midnight : datetime = date - timedelta(0, date.second + date.hour * 3600 + date.minute * 60)
 	return int(midnight.timestamp())
