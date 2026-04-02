@@ -2,6 +2,7 @@ import numpy as np
 from typing import *
 from solution.Consumer_interface import Consumer_interface
 from solution.Calculation_Params import CalculationParams
+import pyomo.environ as pyo
 from solution.Utils.utils import maxi, mini
 from math import ceil, floor
 from typing import TypedDict
@@ -14,6 +15,8 @@ class _CalculatedTimeParameters(TypedDict):
 	max_charge_time     : int
 	end_time_min_charge : int
 	end_time_max_charge : int
+	last_time_min_charge: int
+	last_time_max_charge: int
 	steps_count         : int
 
 @dataclass(init=False, repr=True)
@@ -35,6 +38,28 @@ class VehicleConsumer(Consumer_interface):
 		self.consumer_machine_type = consumer_machine_type
 		self.has_base_consumption = False
 		self.is_reocurring = False
+#region Maloen
+	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams):
+		tp = self._get_calculated_time_parameters(calculationParams)
+		consumerBlock.decision_set = pyo.RangeSet(tp["start_time"], tp["last_time_min_charge"], calculationParams.step_size)
+		consumerBlock.decisions = pyo.Var(consumerBlock.decision_set, domain=pyo.Binary)
+
+	def _create_consumer_constraint(self, consumerBlock: pyo.Block, calculationParams: CalculationParams):
+		tp = self._get_calculated_time_parameters(calculationParams)
+		def unicity_constraint(block: pyo.Block):
+			return sum(block.decision[i] for i in range(tp["start_time"], tp["last_time_min_charge"] + 1)) == 1
+		consumerBlock.constraint_unicity = pyo.Constraint(rule = unicity_constraint)
+		
+	# def create_variable(self, myBlock):
+    #     myBlock.decision_set = pyo.RangeSet(self.debut_disponibilite, self.t_dernier_lancement_possible)
+    #     myBlock.decision = pyo.Var(myBlock.decision_set, domain=pyo.Binary)#, initialize=[0]*(self.t_dernier_lancement_possible-self.debut_disponibilite+1))
+
+    # def create_constraint(self, myBlock):
+    #     def unicity_constraint(myBlock):
+    #         return sum(myBlock.decision[i] for i in range(self.debut_disponibilite, self.t_dernier_lancement_possible + 1)) == 1
+    #     myBlock.constraint_unicity = pyo.Constraint(rule = unicity_constraint)
+#endregion
+#region ELFE1
 	
 	def _get_f_contrib(self, calculationParams : CalculationParams) -> List[float]:
 		self._make_machine_possible(calculationParams)
@@ -59,6 +84,8 @@ class VehicleConsumer(Consumer_interface):
 		max_charge_time   		= step_size * ceil(capacity_watt_seconds * max_charge_proportion / (self.power_watt * step_size))
 		end_time_min_charge 	= start_time + min_charge_time
 		end_time_max_charge 	= start_time + max_charge_time
+		last_time_min_charge 	= end_time - min_charge_time
+		last_time_max_charge 	= end_time - max_charge_time
 		steps_count         	=  floor((end_time - start_time - min_charge_time) / calculationParams.step_size)
 		return {
 			"start_time" 			: start_time,
@@ -67,6 +94,8 @@ class VehicleConsumer(Consumer_interface):
 			"end_time_max_charge" 	: end_time_max_charge,
 			"max_charge_time" 		: max_charge_time,
 			"min_charge_time" 		: min_charge_time,
+			"last_time_min_charge"	: last_time_min_charge,
+			"last_time_max_charge"	: last_time_max_charge,
 			"steps_count"     		: steps_count
 			}
 	
@@ -97,7 +126,7 @@ class VehicleConsumer(Consumer_interface):
 		if (end_time <= calculationParams.begin):
 			print(f"warning, {self._get_constraint_repr(calculationParams)} is impossible because it's supposed to end before the start of simulation. scheduling it for next step")
 			self.start_time = calculationParams.begin
-			self.end_time   = self.start_time + tp["end_time_min_charge"]
+			self.end_time   = self.start_time + tp["end_time_min_charge"] #etrange : start_time + start_time + min_duration
 			print(f"result is {self._get_constraint_repr(calculationParams)}")
 
 	def _get_minimizing_variables_count(self, calculationParams : CalculationParams) -> int:
@@ -159,7 +188,7 @@ class VehicleConsumer(Consumer_interface):
 						toReturn[start_step + i + j] = - variables[i] * power_curve[j]
 		return toReturn
 	
-	def _get_decisions(self, calculationParams : CalculationParams, variables : List[float]) -> np.ndarray:
+	def old_get_decisions(self, calculationParams : CalculationParams, variables : List[int]) -> np.ndarray:
 		tp = self._get_calculated_time_parameters(calculationParams)
 		sim_size = calculationParams.get_simulation_size()
 		toReturn = np.zeros((sim_size,), np.int64)
@@ -169,3 +198,10 @@ class VehicleConsumer(Consumer_interface):
 			if (variables[i] != 0):
 				toReturn[start_step + i] = np.round(variables[i])
 		return toReturn
+	
+	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamp : int) -> np.ndarray:
+		toReturn = np.zeros((calculationParams.get_simulation_size(),), np.int64)
+		launch_step = int(round((launch_timestamp - calculationParams.begin) / calculationParams.step_size))
+		toReturn[launch_step] = 1
+		return toReturn
+#endregion

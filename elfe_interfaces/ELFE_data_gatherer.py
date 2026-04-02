@@ -11,9 +11,11 @@ from solution.ConsumerTypes.SumConsumer import SumConsumer, SumPeriod
 from solution.ConsumerTypes.MachineConsumer import MachineConsumer
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.ConsumerTypes.VehicleConsumer import VehicleConsumer
+from solution.Utilisateur import Utilisateur
 from solution.Calculation_Params import CalculationParams
+from solution.ProducerTypes.SolarProducer import SolarProducer
 from utils.time.period import Period, get_merged_periods
-from utils.time.midnight import get_midnight_date, get_midnight_timestamp
+from utils.time.midnight import get_midnight_date
 from utils.time.timestamp import get_timestamp, get_round_timestamp
 from math import ceil
 from datetime import datetime
@@ -24,6 +26,7 @@ config : Config = get_config()
 MODE_PILOTE = 30
 DAY_TIME_SECONDS = 24 * 60 * 60
 DELTA_SIMULATION = config.delta_time_simulation_s
+COHORTE_ID = 'ACI_1'
 
 def get_machines(timestamp) -> List[MachineConsumer]:
 	to_return : List[MachineConsumer]= []
@@ -48,7 +51,7 @@ def get_machines(timestamp) -> List[MachineConsumer]:
 		to_return.append(machine_consumer)
 	return to_return
  
-def get_ECS(timestamp) -> List[ECSConsumer]:
+def get_ECS(timestamp: int, calculation_params: CalculationParams) -> List[ECSConsumer]:
 	#ECS means "Eau Chaude Sanitaire" which is the hot water tank
 	midnight = get_midnight_date(timestamp)
 	midnight_timestamp = midnight.timestamp()
@@ -59,9 +62,9 @@ def get_ECS(timestamp) -> List[ECSConsumer]:
 	for ecs_id in ecs_to_schedule:
 		ecs : ECSToScheduleType = ecs_to_schedule[ecs_id]
 		last_consumption = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
-		duration_hour = last_consumption / ecs.power_W + 2#add two hours to be safe, to be put in a config file
-		duration_step = duration_hour * 4 #WARNING, quick and dirty, couples the code to 15min simulation step. To be reworked
-		duration_step = ceil(duration_step)
+		duration_hour = last_consumption / ecs.power_W + 2 #add two hours to be safe, to be put in a config file
+		# calculation_params.step_size
+		duration_step = ceil(duration_hour * 4) #WARNING, quick and dirty, couples the code to 15min simulation step. To be reworked
 		ecs_curve = []
 		for i in range(duration_step):
 			ecs_curve.append(ecs.power_W)
@@ -85,13 +88,13 @@ def get_ECS(timestamp) -> List[ECSConsumer]:
 		ecs_consumers.append(consumer)
 	return (ecs_consumers)
 
-def get_electric_vehicle(timestamp) -> List[VehicleConsumer]:
+def get_electric_vehicle(timestamp: int, cohorte_id: int) -> Dict[str: VehicleConsumer]:
 	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result")
-	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], vehicle_not_to_schedule)
-	vehicles : List[VehicleConsumer] = []
+	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], vehicle_not_to_schedule, cohorte_id)
+	vehicles : Dict[VehicleConsumer] = {}
 	for v in vehicle_to_schedule:
 		vehicle_consumer : VehicleConsumer = VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, timestamp, v.end_timestamp, v.equipement_type)
-		vehicles.append(vehicle_consumer)
+		vehicles[v.utilisateur] = vehicle_consumer
 	return vehicles
 
 def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> List[SumConsumer]:
@@ -164,7 +167,7 @@ def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> L
 	return sum_consumers
 
 def get_temperature_forecast(timestamp_start : int, timestamp_end : int, timestamp_list : List[int]) -> np.ndarray:
-	temperature_query = ("SELECT wheather_timestamp, temperature FROM initialweather WHERE wheather_timestamp >= %s AND wheather_timestamp <= %s ORDER BY wheather_timestamp ASC", timestamp_start, timestamp_end)
+	temperature_query = sql.SQL("SELECT wheather_timestamp, temperature FROM initialweather WHERE wheather_timestamp >= %s AND wheather_timestamp <= %s ORDER BY wheather_timestamp ASC", timestamp_start, timestamp_end)
 	temperature_list : List[Tuple[int, int]]= fetch(db_credentials["EMS"], temperature_query)
 	forecast : List[int] = []
 	for t in timestamp_list:
@@ -235,12 +238,34 @@ def get_heater_consumer(timestamp : int, calculationParams: CalculationParams) -
 		heater_consumers.append(heater_consumer)
 	return heater_consumers
 
+def get_panneaux_photovoltaiques(cohorte_id: str) -> Dict[str: SolarProducer]:
+	panneaux = get_elfe_solar_pv(db_credentials["ELFE"], cohorte_id)
+	to_return: Dict[str, SolarProducer] = {}
+	for p in panneaux:
+		current = SolarProducer(id=p.Id, puissance_crete_W=p.puissance_crete_W, orientation=p.orientation)
+		to_return[p.utilisateur] = current
+	return to_return
+
+def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
+	utilisateurs = get_elfe_utilisateurs(db_credentials["EMS"], cohorte_id)
+	to_return : Dict[str, Utilisateur] = {u.Id: u for u in utilisateurs}
+	
+	vehicules_electriques = get_electric_vehicle(timestamp, cohorte_id)
+	for u, v in vehicules_electriques:
+		to_return[u].add_consumer(v)
+	
+	panneaux_photovoltaiques = get_panneaux_photovoltaiques(cohorte_id)
+	for u, p in panneaux_photovoltaiques:
+		to_return[u].add_producer(p)
+
+	return list(to_return.values())
+
 def get_simulation_datas() -> List[int]:
 	config = get_config()
 	round_start_timestamp = get_round_timestamp()
 	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_power = sorted(expected_power, key=lambda x : int(x[0]))
-	simulation_datas = expected_power[:config.step_count]
+	simulation_datas = expected_power[:config.day_step_count]
 	return simulation_datas
 
 def get_calculation_params(simulation_datas = None) -> CalculationParams:
@@ -248,10 +273,12 @@ def get_calculation_params(simulation_datas = None) -> CalculationParams:
 	round_start_timestamp = get_round_timestamp()
 	if (simulation_datas == None):
 		simulation_datas = get_simulation_datas()
-	sim_params = CalculationParams(round_start_timestamp, timestamp + config.step_count * config.delta_time_simulation_s, config.delta_time_simulation_s, config.delta_time_simulation_s, [[-int(simulation_datas[i][1]) for i in range(config.step_count)]])
+	sim_params = CalculationParams(round_start_timestamp, timestamp + config.day_count * config.day_step_count * config.delta_time_simulation_s, config.delta_time_simulation_s, config.delta_time_simulation_s, [[-int(simulation_datas[i][1]) for i in range(config.day_step_count)]])
 	return sim_params
 
 if __name__ == "__main__":
-	from datetime import datetime
-	print(get_machines(int(datetime.now().timestamp())))
+	# from datetime import datetime
+	# print(get_machines(int(datetime.now().timestamp())))
 
+	print(get_panneaux_photovoltaiques(COHORTE_ID))
+	print(get_electric_vehicle(get_timestamp(), COHORTE_ID))

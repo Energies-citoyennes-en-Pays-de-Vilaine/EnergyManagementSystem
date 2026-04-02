@@ -5,11 +5,20 @@ from solution.Exceptions.FunctionNotExistingException import *
 from solution.Calculation_Params import CalculationParams
 from dataclasses import InitVar
 import numpy as np
+import pyomo.environ as pyo
+
 class Consumer_interface():
+	id: int
 	has_base_consumption : InitVar[bool]
 	is_reocurring: InitVar[bool]
 	consumer_machine_type : Optional[int]
-
+	
+	def create_consumer(self, block: pyo.Block, calculationParams: CalculationParams) -> None:
+		checkFunctionExist(self, "_create_consumer_variable")
+		self._create_consumer_variable(block, calculationParams)
+		checkFunctionExist(self, "_create_consumer_constraint")
+		self._create_consumer_constraint(block, calculationParams)
+		
 	def get_f_contrib(self, calculationParams : CalculationParams) -> List[float]:
 		checkFunctionExist(self, "_get_f_contrib")
 		f_contrib = self._get_f_contrib(calculationParams)
