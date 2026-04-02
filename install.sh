@@ -6,13 +6,13 @@ CONFIG_FOLDER="/etc/ems"
 HAS_TO_INSTALL_ANACONDA=0
 HAS_TO_UPDATE=0
 HAS_TO_INSTALL_POSTGRES=0
+HAS_TO_DROP_DATABASE=0
 HAS_TO_CREATE_DATABASE=1
-HAS_TO_CREATE_OUT_DATABASE=0
+HAS_TO_CREATE_OUT_DATABASE=1
 HAS_TO_GRANT_PERMISSIONS=0
 HAS_TO_INSTALL_MILP=0
-HAS_TO_CREATE_SERVICES=1
+HAS_TO_CREATE_SERVICES=0
 HAS_TO_INSTALL_PREDICTION_HISTORIZER=0
-HAS_TO_DROP_DATABASE=0
 
 EMS_DB="test"
 EMS_USER="testu"
@@ -36,7 +36,8 @@ ELFE_DB="elfe_coordo"
 ELFE_OPTIONS="-c search_path=test,public"
 
 EMSFOLDER="$(echo $PWD)"
-BASHRCPATH="$(echo $HOME)/.bashrc"
+# BASHRCPATH="$(echo $HOME)/.bashrc"
+BASHRCPATH="/home/ens/.bashrc"
 if [ "$EUID" -ne 0 ]
 	then echo "please run installer as root"
 	exit -1
@@ -83,7 +84,7 @@ if [ "$HAS_TO_INSTALL_POSTGRES" -ne 0 ]
 	echo "installing postgresql"
 	apt install -y postgresql
 	echo "starting postgres"
-	pg_ctlcluster 13 main start
+	pg_ctlcluster 18 main start
 fi
 
 if [ "$HAS_TO_CREATE_OUT_DATABASE" -ne 0 ]
