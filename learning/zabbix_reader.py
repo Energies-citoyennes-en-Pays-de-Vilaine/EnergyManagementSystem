@@ -1,78 +1,46 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import numpy as np
 import re
 import matplotlib.pyplot as plt
-class ZabbixReader():
-	url : str
-	username : str
-	password : str
-	token : str
-	last_refresh : datetime
+from zabbix_utils import ZabbixAPI, Getter
+from typing import Dict, List
 
-	def __init__(self, url, username, password) -> None:
-		self.url = url
-		self.username = username
-		self.password = password
-		self.last_refresh = None
-	def send_request(self, method, params, has_token : bool = False, log : bool = False):
-		toSendObject = {
-			"jsonrpc": "2.0",
-			"method": method,
-			"params": params,
-			"id": 42,
-		}
-		if (has_token):
-			toSendObject["auth"] = self.get_token()
-		data = requests.post(self.url, json=toSendObject, headers={'Content-type': 'application/json'})
-		if (log):
-			print(params, data)
-		#TODO add error code management
-		data = json.loads(data.content)
-		return data
-	def get_token(self):
-		if (self.last_refresh == None or (datetime.now() - self.last_refresh).total_seconds() > 100):
-			print("refreshing token")
-			data = self.send_request("user.login", {
-				"user": self.username,
-				"password": self.password
-			},
-			False)
-			token = data["result"]
-			self.token = token
-			self.last_refresh = datetime.now()
-		return self.token
+class ZabbixReader():
+	api : ZabbixAPI
+
+	def __init__(self, url: str, token: str) -> None:
+		self.api = ZabbixAPI(url = url, token = token)
+
 	def get_items_full(self):
-		data = self.send_request("item.get", {}, True)["result"]
+		data = self.api.item.get(output = ["itemids", "name"])
 		items = {}
 		for d in data:
 			items[d["name"]] = int(d["itemid"])
 		return items
+	
 	def get_items(self):
-		data = self.send_request("item.get", {}, True)["result"]
+		data = self.api.item.get(output = ["itemids", "name"])
 		items = {}
 		for d in data:
 			if (re.search("[ADF]{1}\\d{1,3}", d["name"][:4]) != None or re.search("Equi", d["name"][:4]) != None ):
 				items[d["name"]] = int(d["itemid"])
 		return items
 	
-	def get_unit(self, itemId : int) -> str:
-		data = self.send_request("item.get", {"itemids" : [itemId]}, True)["result"]
+	def get_unit(self, itemId: int) -> str:
+		data = self.api.item.get(output = ["units"], itemids = itemId)
 		return data[0]["units"]
 	
-	def get_items_by_tag(self, tag):
-		data = self.send_request("item.get", {"tags": [{"tag" : "appareil", "value": tag}]}, True)["result"]
-		items = {}
-		for d in data:
-			items[d["name"]] = d["itemid"]
+	def get_items_by_tag(self, tag: str):
+		data = self.api.item.get(output = ["itemid", "name"], tags = [{"tag" : "appareil", "value": tag}])
+		items = {d["name"]: d["itemid"] for d in data}
 		return items
-	def get_last_data_for_items(self, items):
-		data = self.send_request("item.get", {
-			"itemids"   : items,
-		}, True)
+	
+	def get_last_data_for_items(self, items: List[int]):
+		data = self.api.item.get(output = ["itemids", "name", "lastvalue", "lastclock"], itemids = items)
 		to_return = []
-		for item in data["result"]:
+		for item in data:
 			to_return.append({
 				"name": item["name"],
 				"itemid" : int(item["itemid"]),
@@ -80,37 +48,44 @@ class ZabbixReader():
 				"last_timestamp" : int(item["lastclock"]),
 			})
 		return to_return
-	def readData(self, clientID, time_from, time_till) -> np.ndarray:
-		#TODO fix typing for this function
-		data = self.send_request("history.get", {
-			"itemids" : clientID,
-			"history": 0,
-			"time_from" : time_from,
-			"time_till" : time_till,
-			"sortfield" : "clock",
-			"sortorder" : "ASC"
-		}, True)
+	
+	def readData(self, clientID: int , time_from: int, time_till: int) -> Dict[str, List[int]]:
+		data = self.api.history.get(itemids = clientID,
+							  		history = 0,
+									time_from = time_from, 
+									time_till = time_till,
+									sortfield = "clock",
+									sortorder = "ASC")
 		toReturn = { 
 			"timestamps"  : [],
 			"values"      : []
 			}
-		for d in data["result"]:
+		for d in data:
 			toReturn["timestamps"].append(int(d["clock"]))
 			toReturn["values"].append(float(d["value"]))
 		return toReturn
-	def readAllData(self, clientID) -> np.ndarray:
-		data = self.send_request("history.get", {
-			"itemids" : clientID,
-			"history": 0,
-			"sortfield" : "clock",
-			"sortorder" : "DESC",
-			"limit" : 100_000,
-		}, True, True)
+	
+	def readAllData(self, clientID: int) -> Dict[str, List[int]]:		
+		data = self.api.history.get(itemids = clientID,
+							history = 0,
+							sortfield = "clock",
+							sortorder = "DESC",
+							limit = 100000)
 		toReturn = { 
 			"timestamps"  : [],
 			"values"      : []
 			}
-		for d in data["result"]:
+		for d in data:
 			toReturn["timestamps"].append(int(d["clock"]))
 			toReturn["values"].append(float(d["value"]))
 		return toReturn
+	
+if __name__ == "__main__":
+	z = ZabbixReader("192.168.30.100", "0770ce62ae3ee2be453c153b42fe702690b796d3f3106994eb0fccba06474aef")
+	# print(z.get_items_full())
+	# print(z.get_items())
+	# print(z.get_unit(42918))
+	# print(z.get_items_by_tag("ECS"))
+	# print(z.get_last_data_for_items([42918]))
+	# print(z.readData(42918, int(datetime.now().timestamp()), int((datetime.now() + timedelta(2)).timestamp())))
+	# print(z.readAllData(42918))
