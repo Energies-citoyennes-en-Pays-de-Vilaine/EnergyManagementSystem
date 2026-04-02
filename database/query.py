@@ -1,11 +1,13 @@
 import psycopg2
 from psycopg2 import sql
-def execute_queries(credentials, queries):
+from typing import Dict
+
+def execute_queries(credentials: Dict[str: str], queries):
 	cred = credentials
 	try:
 		if "options" not in cred:
 			cred["options"] = ""
-		connection = psycopg2.connect(host = cred["host"], database = cred["database"], user = cred["user"], password = cred["password"], options=cred["options"])
+		connection = psycopg2.connect(host = cred["host"], dbname = cred["database"], user = cred["user"], password = cred["password"], options=cred["options"])
 		cursor = connection.cursor()
 		for query in queries:
 			if (isinstance(query, str) or isinstance(query, sql.Composed)):
@@ -22,9 +24,10 @@ def execute_queries(credentials, queries):
 		if connection is not None:
 			connection.close()
 			
-def fetch(credentials, query):
+def fetch(credentials: Dict[str: str], query):
 	cred = credentials
 	result = None
+	connection = None
 	try:
 		if "options" not in cred:
 			cred["options"] = ""

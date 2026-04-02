@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Union, List
 from database.annotations import PrimaryAutoInt, DBAnnotation, serializableThroughDatabase, create_DB_Annotation
+
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class EMSMachineData():

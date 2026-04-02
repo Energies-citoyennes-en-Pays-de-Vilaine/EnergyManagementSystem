@@ -5,18 +5,20 @@ from solution.Calculation_Params import CalculationParams
 from solution.Utils.utils import maxi, mini
 from dataclasses import dataclass
 from typing import TypedDict
+
 class _CalculatedTimeParametersMachine(TypedDict):
 	start_time          : int
 	end_time            : int
 	steps_count         : int
+
 @dataclass(repr=True, init=False)
 class MachineConsumer(Consumer_interface):
-    id:int
-    profile:int
-    start_time:int
-    end_time:int
-    machine_count:int
-    consumer_machine_type:int
+    id                      : int
+    profile                 : int
+    start_time              : int
+    end_time                : int
+    machine_count           : int
+    consumer_machine_type   : int
     def __init__(self, id, profile, start_time, end_time, machine_count = 1, consumer_machine_type = -1):
         self.id = id
         self.profile = profile
