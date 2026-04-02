@@ -14,7 +14,16 @@ ELFE_database_names = {
 	"ELFE_MachineGenerique"                : "equipement_pilote_machine_generique",
 	"ELFE_MachineGeneriqueCycle"           : "equipement_pilote_machine_generique_cycle",
 	"ELFE_VehiculeElectriqueGenerique"     : "equipement_pilote_vehicule_electrique_generique",
+	"ELFE_PanneauxPhotovoltaiques"		   : "equipement_mesure_centrale_elec_generique",
+	"ELFE_Utilisateur"					   : "utilisateur",
 }
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
+class ELFE_Utilisateur():
+	Id : PrimaryAutoInt
+	cohorte_id : int
+	calendrier_HPHC_id : int 
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
@@ -69,6 +78,7 @@ class ELFE_Chauffage():
 			if self.prog_semaine_periode_2_confort_actif == True:
 				periods.append(Period(int(midnight_date.timestamp()) + self.prog_semaine_periode_2_confort_heure_debut, int(midnight_date.timestamp()) + self.prog_semaine_periode_2_confort_heure_fin))
 		return periods
+	
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class ELFE_ChauffageAsservi(ELFE_Chauffage):
@@ -168,6 +178,15 @@ class ELFE_BallonECSHeuresCreuses():
 	actif                           : bool
 	debut                           : int
 	fin                             : int
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
+class ELFE_PanneauxPhotovoltaiques:
+	Id 								: PrimaryAutoInt
+	equipement_pilote_ou_mesure_id 	: int
+	mesure_puissance_elec_id		: int
+	puissance_installee				: int
+	orientation 					: int
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
