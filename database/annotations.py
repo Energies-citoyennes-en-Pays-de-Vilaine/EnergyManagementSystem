@@ -26,7 +26,7 @@ class PrimaryAutoInt(int):
 	pass
 
 def serializableThroughDatabase(clas):
-	def get_create_table_str(name):
+	def get_create_table_str(name, schema:str = ""):
 		args = []
 		annotations = clas.__annotations__
 		for key in annotations.keys():
@@ -61,7 +61,7 @@ def serializableThroughDatabase(clas):
 					else:
 						print(annotations[key])
 			
-		return (f" CREATE TABLE IF NOT EXISTS {name} ({', '.join(args)});")
+		return (f" CREATE TABLE IF NOT EXISTS {schema+("." if schema != "" else "")}{name} ({', '.join(args)});")
 
 	def get_append_in_table_str(self, name):
 		args = []
@@ -176,7 +176,7 @@ def serializableThroughDatabase(clas):
 
 		return (f"UPDATE {name} SET {', '.join([s + '=%s' for s in args])} WHERE {primary_key} = %s;", values + [primary_value])
 
-	def get_create_or_update_in_table_str(self, name):
+	def get_create_or_update_in_table_str(self, name:str, schema:str = ""):
 		args = []
 		values = []
 		annotations = clas.__annotations__
@@ -228,7 +228,7 @@ def serializableThroughDatabase(clas):
 						values.append('1' if self.__getattribute__(key)[i] == True else '0')
 					else:
 						print(annotations[key])
-		return (f"INSERT INTO {name} ({', '.join([primary_key] + args)}) VALUES ({', '.join(['%s' for s in [primary_key] + args])}) ON CONFLICT ({primary_key}) DO UPDATE SET {', '.join([s + '=%s' for s in args])};", [primary_value] + values + values)
+		return (f"INSERT INTO {schema+("." if schema != "" else "")}{name} ({', '.join([primary_key] + args)}) VALUES ({', '.join(['%s' for s in [primary_key] + args])}) ON CONFLICT ({primary_key}) DO UPDATE SET {', '.join([s + '=%s' for s in args])};", [primary_value] + values + values)
 
 
 	def create_from_select_output(output):
