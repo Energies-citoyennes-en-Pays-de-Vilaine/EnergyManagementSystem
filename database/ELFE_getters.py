@@ -88,16 +88,16 @@ class ElectricVehicleToScheduleType:
 	equipement_type             : int
 
 def get_electric_vehicle_to_schedule(credentials: Dict[str: str], cohorte_id: str, vehicle_not_to_schedule : Union[List[int], None] = None) -> List[ElectricVehicleToScheduleType]:
-	query = (sql.SQL("""SELECT epm.id, ve.pourcentage_charge_restant, ve.pourcentage_charge_finale_minimale_souhaitee,
-	    				ve.timestamp_dispo_souhaitee, ve.puissance_de_charge, ve.capacite_de_batterie, epm.equipement_pilote_ou_mesure_type_id
-						FROM {0} AS epm
-						INNER JOIN {1} AS ve ON ve.equipement_pilote_ou_mesure_id = epm.id
-				  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur
+	query = (sql.SQL("""SELECT ve.equipement_pilote_ou_mesure_id, ve.pourcentage_charge_restant, ve.pourcentage_charge_finale_minimale_souhaitee,
+	    				ve.timestamp_dispo_souhaitee, ve.puissance_de_charge, ve.capacite_de_batterie, usr.id, epm.equipement_pilote_ou_mesure_type_id
+						FROM {1} AS ve
+						INNER JOIN {0} AS epm ON ve.equipement_pilote_ou_mesure_id = epm.id
+	 			  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur			  
 						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
 				  		AND usr.cohorte = %s""").format(
 			sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
 			sql.Identifier(ELFE_database_names['ELFE_VehiculeElectriqueGenerique']),
-			sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+	 		sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
 		),
 		[MODE_PILOTE, cohorte_id]
 	)
@@ -107,8 +107,8 @@ def get_electric_vehicle_to_schedule(credentials: Dict[str: str], cohorte_id: st
 		return []
 	result_typed : List[ElectricVehicleToScheduleType] = []
 	for r in result:
-		if vehicle_not_to_schedule == None or r[0] not in vehicle_not_to_schedule:
-			result_typed.append(ElectricVehicleToScheduleType(r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
+		if vehicle_not_to_schedule == None or int(r[0]) not in vehicle_not_to_schedule:
+			result_typed.append(ElectricVehicleToScheduleType(r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7]))
 	print("[debug info Electric vehicle]", result_typed)
 	return result_typed
 

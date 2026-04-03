@@ -88,9 +88,9 @@ def get_ECS(timestamp: int, calculation_params: CalculationParams) -> List[ECSCo
 		ecs_consumers.append(consumer)
 	return (ecs_consumers)
 
-def get_electric_vehicle(timestamp: int, cohorte_id: int) -> Dict[str: VehicleConsumer]:
+def get_electric_vehicle(timestamp: int, cohorte_id: str) -> Dict[str: VehicleConsumer]:
 	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result")
-	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], vehicle_not_to_schedule, cohorte_id)
+	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, vehicle_not_to_schedule)
 	vehicles : Dict[VehicleConsumer] = {}
 	for v in vehicle_to_schedule:
 		vehicle_consumer : VehicleConsumer = VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, timestamp, v.end_timestamp, v.equipement_type)
