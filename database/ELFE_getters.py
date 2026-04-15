@@ -87,19 +87,20 @@ class ElectricVehicleToScheduleType:
 	utilisateur					: str
 	equipement_type             : int
 
-def get_electric_vehicle_to_schedule(credentials: Dict[str: str], cohorte_id: str, vehicle_not_to_schedule : Union[List[int], None] = None) -> List[ElectricVehicleToScheduleType]:
+def get_electric_vehicle_to_schedule(credentials: Dict[str: str], cohorte_id: str, timestamp: int, vehicle_not_to_schedule : Union[List[int], None] = None) -> List[ElectricVehicleToScheduleType]:
 	query = (sql.SQL("""SELECT ve.equipement_pilote_ou_mesure_id, ve.pourcentage_charge_restant, ve.pourcentage_charge_finale_minimale_souhaitee,
 	    				ve.timestamp_dispo_souhaitee, ve.puissance_de_charge, ve.capacite_de_batterie, usr.id, epm.equipement_pilote_ou_mesure_type_id
 						FROM {1} AS ve
 						INNER JOIN {0} AS epm ON ve.equipement_pilote_ou_mesure_id = epm.id
 	 			  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur			  
 						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
+				  		AND ve.timestamp_dispo_souhaitee > %s
 				  		AND usr.cohorte = %s""").format(
 			sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
 			sql.Identifier(ELFE_database_names['ELFE_VehiculeElectriqueGenerique']),
 	 		sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
 		),
-		[MODE_PILOTE, cohorte_id]
+		[MODE_PILOTE, timestamp, cohorte_id]
 	)
 	result = fetch(credentials, query)
 	if result == None:

@@ -8,6 +8,7 @@ from typing import *
 # import scipy.optimize as opt
 import numpy as np
 import pyomo.environ as pyo
+from utils.time import timestamp
 
 
 class Problem():
@@ -18,13 +19,14 @@ class Problem():
     has_results                   : bool
     is_ready_to_run               : bool
     result                        : np.ndarray
+    model                         : pyo.ConcreteModel
     # consumers                     : List[Consumer_interface]
     # constraint_matrix             : np.ndarray
     # constraint_low                : List[float]
     # constraint_high               : List[float]
     # integrality                   : List[int]
     # minimizing_matrix             : List[float]
-    model                         : pyo.ConcreteModel
+
     def __init__(self, utilisateurs : List[Utilisateur], calculationParams : CalculationParams) -> None:
         self.utilisateurs                  = utilisateurs
         self.calculationParams             = calculationParams
@@ -34,22 +36,25 @@ class Problem():
         self.is_ready_to_run               = False
         self.result                        = None
     
-    def create_model(self):
+    def create_model(self, solar_prevision: Dict[int, float]):
         model = pyo.ConcreteModel()
+        round_start_timestamp = timestamp.get_round_timestamp()
         model.n_steps = pyo.Param(initialize = self.calculationParams.get_simulation_size(), domain = pyo.PositiveIntegers)
-        model.steps = pyo.RangeSet(0, (model.n_steps - 1) * self.calculationParams.step_size, self.calculationParams.step_size)
+        model.steps = pyo.RangeSet(round_start_timestamp, round_start_timestamp + (model.n_steps - 1) * self.calculationParams.step_size, self.calculationParams.step_size)
 
         model.n_users = pyo.Param(initialize = len(self.utilisateurs), domain = pyo.PositiveIntegers)
         model.users_id = pyo.RangeSet(0, model.n_users - 1)
         model.utilisateurs = pyo.Block(model.users_id)
         for i, utilisateur in enumerate(self.utilisateurs):
-            utilisateur.create_block_submodel(model.utilisateurs[i], model.steps, self.calculationParams)
+            utilisateur.create_block_submodel(model.utilisateurs[i], model.steps, self.calculationParams, solar_prevision)
         
         def objective_function(m):
             return sum(sum(m.utilisateurs[u].imports[t] for t in m.steps) for u in m.users_id)
         model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)  
 
         self.model = model
+        self.is_ready_to_run = True
+
 #region ELFE
     # def prepare(self, force = False) :
     #     if self.is_ready_to_run and not force:
@@ -102,13 +107,12 @@ class Problem():
     #     self.minimizing_matrix = minimizing_matrix
     #     self.is_ready_to_run   = True
 #endregion
-    def solve(self, time_limit: int = 100, force : bool = False):
+    
+    def solve(self, time_limit: int = 100, force: bool = False):
         if self.has_results and not force:
             return
         # if not self.calculationParams.check():
         #     return
-        if not self.is_ready_to_run:
-            self.create_model()
  
         time_limit_dict = {
         'scip'               : "limits/time",
@@ -121,12 +125,10 @@ class Problem():
             options[time_limit_dict[solver_name]] = time_limit
         
         result = solver.solve(self.model, options = options)
-
         self.result = result.solver.status
-        if (result.x is None):
-            print("fatal error, solver didn't work")
-            print(result)
+
         self.has_results = True
+        print("Resultats: ", self.result)
         # self.fun_val     = result.fun
         return result
     

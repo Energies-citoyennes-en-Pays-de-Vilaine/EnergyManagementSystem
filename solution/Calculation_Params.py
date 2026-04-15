@@ -1,5 +1,6 @@
 from typing import *
 from dataclasses import dataclass
+from utils.time.timestamp import synchronise
 
 @dataclass(init=False, repr=True)
 class CalculationParams():
@@ -12,8 +13,8 @@ class CalculationParams():
 
 	def __init__(self, begin: int, end: int, step_size: int, time_delta: int, base_minimization_constraints : List[List[float]]) -> None:
 		self.base_minimization_constraints = base_minimization_constraints
-		self.begin = begin
-		self.end = end #end is always included in the simulation; this may be important for later
+		self.begin = synchronise(begin)
+		self.end = synchronise(end) #end is always included in the simulation; this may be important for later
 		self.step_size = step_size
 		self.time_delta = time_delta
 		self.simulation_size = (self.end - self.begin) / self.step_size + 1

@@ -1,5 +1,5 @@
 from solution.Production_interface import Producer_interface
-from typing import List
+from typing import Dict
 from numpy import array
 
 class SolarProducer(Producer_interface):
@@ -12,5 +12,6 @@ class SolarProducer(Producer_interface):
         self.puissance_crete_W = puissance_crete_W
         self.orientation = orientation
 
-    def _get_production(self, prediction: List[float]) -> List[float]:
-        return list(array(prediction) * self.puissance_crete_W)
+    def _get_production(self, prediction: Dict[int, float]) -> Dict[int, float]:
+        prediction.update((key, value * self.puissance_crete_W) for key, value in prediction.items())
+        return prediction

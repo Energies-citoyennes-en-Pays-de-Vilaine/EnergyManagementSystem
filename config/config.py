@@ -14,9 +14,9 @@ class Config():
 
 def get_config() -> Config:
 	return Config(
-		delta_time_simulation_s       = 60 * 15,#15 mins
+		delta_time_simulation_s       = 60 * 15, #15 minutes
 		day_step_count                = 96, #number of steps for a day at 15mins/steps
-		day_count					  = 2,
+		day_count					  = 1,
 		max_time_to_solve_s           = 60 * 10, #ten minutes to solve, 5 minutes for the interactions with the database
 		heater_eco_sliding_percentage = 25,
 		heater_eco_sliding_period_s   = 60 * 60,

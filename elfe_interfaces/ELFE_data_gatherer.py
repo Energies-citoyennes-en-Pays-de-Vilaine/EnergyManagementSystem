@@ -21,6 +21,7 @@ from math import ceil
 from datetime import datetime
 import numpy as np
 from config.config import Config, get_config
+from operator import itemgetter
 
 config : Config = get_config()
 MODE_PILOTE = 30
@@ -88,12 +89,12 @@ def get_ECS(timestamp: int, calculation_params: CalculationParams) -> List[ECSCo
 		ecs_consumers.append(consumer)
 	return (ecs_consumers)
 
-def get_electric_vehicle(timestamp: int, cohorte_id: str) -> Dict[str: VehicleConsumer]:
-	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result")
-	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, vehicle_not_to_schedule)
+def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) -> Dict[str: VehicleConsumer]:
+	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin, "result")
+	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, calculationParams.begin, vehicle_not_to_schedule)
 	vehicles : Dict[VehicleConsumer] = {}
 	for v in vehicle_to_schedule:
-		vehicle_consumer : VehicleConsumer = VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, timestamp, v.end_timestamp, v.equipement_type)
+		vehicle_consumer : VehicleConsumer = VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams.begin, v.end_timestamp, v.equipement_type)
 		vehicles[v.utilisateur] = vehicle_consumer
 	return vehicles
 
@@ -247,33 +248,49 @@ def get_panneaux_photovoltaiques(cohorte_id: str) -> Dict[str: SolarProducer]:
 	return to_return
 
 def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
-	utilisateurs = get_elfe_utilisateurs(db_credentials["EMS"], cohorte_id)
-	to_return : Dict[str, Utilisateur] = {u.Id: u for u in utilisateurs}
+	utilisateurs = get_elfe_utilisateurs(db_credentials["ELFE"], cohorte_id)
+	to_return : Dict[str, Utilisateur] = {u.Id: Utilisateur(u.Id) for u in utilisateurs}
 	
-	vehicules_electriques = get_electric_vehicle(timestamp, cohorte_id)
-	for u, v in vehicules_electriques:
+	vehicules_electriques = get_electric_vehicle(calculationsParams, cohorte_id)
+	for u, v in vehicules_electriques.items():
 		to_return[u].add_consumer(v)
 	
 	panneaux_photovoltaiques = get_panneaux_photovoltaiques(cohorte_id)
-	for u, p in panneaux_photovoltaiques:
+	for u, p in panneaux_photovoltaiques.items():
 		to_return[u].add_producer(p)
 
 	return list(to_return.values())
 
-def get_simulation_datas() -> List[int]:
+def get_cohorte_balance() -> List[Tuple[int, float]]:
 	config = get_config()
 	round_start_timestamp = get_round_timestamp()
 	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
-	expected_power = sorted(expected_power, key=lambda x : int(x[0]))
-	simulation_datas = expected_power[:config.day_step_count]
-	return simulation_datas
+	expected_power = sorted(expected_power, key=itemgetter(0))
+	cohorte_balance = expected_power[:config.day_step_count]
+	return [(round_start_timestamp + config.delta_time_simulation_s * i, 0) for i in range(config.day_step_count)]
+	return cohorte_balance
+
+def get_production_solaire() -> Dict[int, float]:
+	config = get_config()
+	round_start_timestamp = get_round_timestamp()
+	# expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
+	# expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
+	# normal_solar_prediction = expected_solar_power[:config.day_step_count]
+	return {int(round_start_timestamp + config.delta_time_simulation_s * i): 0 for i in range(config.day_step_count)}
+	return normal_solar_prediction
 
 def get_calculation_params(simulation_datas = None) -> CalculationParams:
 	timestamp = get_timestamp()
 	round_start_timestamp = get_round_timestamp()
 	if (simulation_datas == None):
-		simulation_datas = get_simulation_datas()
-	sim_params = CalculationParams(round_start_timestamp, timestamp + config.day_count * config.day_step_count * config.delta_time_simulation_s, config.delta_time_simulation_s, config.delta_time_simulation_s, [[-int(simulation_datas[i][1]) for i in range(config.day_step_count)]])
+		simulation_datas = get_cohorte_balance()
+	sim_params = CalculationParams(
+		round_start_timestamp,
+		timestamp + config.day_count * config.day_step_count * config.delta_time_simulation_s,
+		config.delta_time_simulation_s,
+		config.delta_time_simulation_s,
+		[[-int(simulation_datas[i][1]) for i in range(config.day_step_count)]]
+	)
 	return sim_params
 
 if __name__ == "__main__":
