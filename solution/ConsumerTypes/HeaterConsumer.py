@@ -3,9 +3,9 @@ from solution.Calculation_Params import CalculationParams
 from solution.Consumer_interface import Consumer_interface
 from typing import *
 from dataclasses import dataclass
-#TODO think about how to use it as a cooler
+#TODO_ELFE think about how to use it as a cooler
 #power -> Tinit -> Text
-#TODO add some strong testing that text and Twish has values for all sim_size
+#TODO_ELFE add some strong testing that text and Twish has values for all sim_size
 @dataclass(repr=True, init=False)
 class HeaterConsumer(Consumer_interface):
     """
@@ -35,7 +35,7 @@ class HeaterConsumer(Consumer_interface):
         self.is_reocurring = True
 
     def simulate_next_step(self, calculationParams : CalculationParams, current_temp, T_ext, next_T_ext, P_th) -> float:
-        #TODO use this in stead once calculation is validated
+        #TODO_ELFE use this in stead once calculation is validated
         rc = self.R_th * self.C_th
         delta_T_i = current_temp - T_ext
         delta_t = calculationParams.time_delta

@@ -35,7 +35,7 @@ class SumConsumer(Consumer_interface):
 
     def _get_functionnal_constraints_boundaries(self, calculationParams : CalculationParams) -> List[List[float]]:
         self.sum_periods = self._get_feasible_periods(calculationParams)
-        bound_min = [sum_period.expected_sum_min for sum_period in self.sum_periods]#TODO add check that each sum_period is fesible to include them or not !!!!important
+        bound_min = [sum_period.expected_sum_min for sum_period in self.sum_periods]#TODO_ELFE add check that each sum_period is fesible to include them or not !!!!important
         bound_max = [sum_period.expected_sum_max for sum_period in self.sum_periods]
         return [bound_min[:] + [0 for i in range(self._get_minimizing_variables_count(calculationParams))], bound_max[:] + [1 for i in range(self._get_minimizing_variables_count(calculationParams))]]
 

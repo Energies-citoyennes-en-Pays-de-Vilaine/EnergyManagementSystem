@@ -231,7 +231,7 @@ def make_study_case(credentials, csvPath: str) -> StudyCase:
 				params = {
 					"ECS_volume" : int(splitted_line[1]),
 					"ECS_power" : int(splitted_line[2]),
-					"ECS_mesures" : int(splitted_line[3]),# TODO finish me
+					"ECS_mesures" : int(splitted_line[3]),# TODO_ELFE finish me
 					"ECS_HC_count" : int(splitted_line[4]),
 					"heures_creuses" : [],
 				}
