@@ -20,6 +20,10 @@ class ZabbixReader():
 			items[d["name"]] = int(d["itemid"])
 		return items
 	
+	def get_itemid_by_key(self, key: str) -> int:
+		clientId = self.api.item.get(output = "itemids", filter = {"key_": key})[0]["itemid"]
+		return clientId
+
 	def get_items(self):
 		data = self.api.item.get(output = ["itemids", "name"])
 		items = {}
@@ -65,6 +69,24 @@ class ZabbixReader():
 			toReturn["values"].append(float(d["value"]))
 		return toReturn
 	
+	def readDataKey(self, key: str , time_from: int, time_till: int = None) -> Dict[str, List[int]]:
+		itemID = self.get_itemid_by_key(key)
+		getoptions = {	"itemids" 	: itemID,
+						"history" 	: 0,
+						"time_from" : time_from, 
+						"sortfield" : "clock",
+						"sortorder" : "ASC"}
+		if time_till is not None : getoptions["time_till"] = time_till
+		data = self.api.history.get(getoptions)
+		toReturn = { 
+			"timestamps"  : [],
+			"values"      : []
+			}
+		for d in data:
+			toReturn["timestamps"].append(int(d["clock"]))
+			toReturn["values"].append(float(d["value"]))
+		return toReturn
+	
 	def readAllData(self, clientID: int) -> Dict[str, List[int]]:		
 		data = self.api.history.get(itemids = clientID,
 							history = 0,
@@ -81,7 +103,9 @@ class ZabbixReader():
 		return toReturn
 	
 if __name__ == "__main__":
-	z = ZabbixReader("192.168.30.100", "0770ce62ae3ee2be453c153b42fe702690b796d3f3106994eb0fccba06474aef")
+	from credentials.zabbix_credentials import zabbix_credentials
+	# z = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
+	# print(z.readDataKey("Prevision_equilibre", time_from= int(datetime.now().timestamp())))
 	# print(z.get_items_full())
 	# print(z.get_items())
 	# print(z.get_unit(42918))
