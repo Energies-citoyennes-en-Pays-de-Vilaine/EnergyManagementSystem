@@ -82,17 +82,15 @@ class Problem():
     def get_consumption(self) -> np.ndarray:
         consumption = np.zeros((self.calculationParams.get_simulation_size(),), np.float64)
         for u, utilisateur in enumerate(self.utilisateurs):
-            # utilisateur.get_consumption()
-            for c, consumer in enumerate(utilisateur.consumers):
-                for decision in get_model_consumer_decision(self.model.utilisateurs[u].consumers[c]):
-                    consumption += consumer.get_consumption_curve(self.calculationParams, decision)
+            consumption += utilisateur.get_consumption(self.model.utilisateurs[u], self.calculationParams)
         return consumption
     
     def get_decisions(self) -> List:
         problem_decisions = []
         for u, utilisateur in enumerate(self.utilisateurs):
             for c, consumer in enumerate(utilisateur.consumers):
-                decisions = get_model_consumer_decision(self.model.utilisateurs[u].consumers[c])
+                model_consumer = self.model.utilisateurs[u].consumers[c]
+                decisions = [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]
                 if len(problem_decisions) == 1:
                     problem_decisions.append(
                         {

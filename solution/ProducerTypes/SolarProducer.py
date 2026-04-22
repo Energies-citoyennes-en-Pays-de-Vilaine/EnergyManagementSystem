@@ -13,5 +13,5 @@ class SolarProducer(Producer_interface):
         self.orientation = orientation
 
     def _get_production(self, prediction: Dict[int, float]) -> Dict[int, float]:
-        prediction.update((key, value * self.puissance_crete_W) for key, value in prediction.items())
-        return prediction
+        production = {key: value * self.puissance_crete_W for key, value in prediction.items()}
+        return production
