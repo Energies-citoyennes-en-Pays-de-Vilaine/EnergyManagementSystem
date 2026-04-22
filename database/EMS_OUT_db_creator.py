@@ -17,9 +17,7 @@ def create_tables(credentials: Dict[str: str]) -> None:
 		tables_queries = [
 			(f" CREATE SCHEMA {schema};"),
 			(f" ALTER SCHEMA {schema} OWNER TO {credentials["user"]}"),
-			# (f" USE SCHEMA {credentials["database"]}.{schema};")
 			] + tables_queries
-	# print(tables_queries)
 	execute_queries(credentials, tables_queries)
 
 			

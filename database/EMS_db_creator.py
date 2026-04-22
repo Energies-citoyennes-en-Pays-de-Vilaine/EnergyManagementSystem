@@ -13,7 +13,6 @@ def create_tables(credentials):
 		InitialWheatherForecast.get_create_table_str("initialweather"),
 		HistoricalInitialWheatherForecast.get_create_table_str("historyinitialweather"),
 		EMSDeviceTemperatureData.get_create_table_str("devicetemperaturedata"),
-		# EMSPowerCurveData.get_create_table_str("prediction"),
 		EMSPowerCurveData.get_create_table_str("normal_solar_prevision"),
 		EMSPowerCurveData.get_create_table_str("prevision_equilibre"),
 		EMSResult.get_create_table_str("result"),
