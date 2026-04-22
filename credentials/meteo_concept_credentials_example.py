@@ -1,1 +1,0 @@
-meteo_concept_key = "mySuperKey"
