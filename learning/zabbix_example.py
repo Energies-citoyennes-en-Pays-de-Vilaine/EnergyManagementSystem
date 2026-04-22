@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from credentials.zabbix_credentials import zabbix_credentials
 
-zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["username"], zabbix_credentials["password"])
+zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
 items = zr.get_items()
 i = 0
 for item in items:

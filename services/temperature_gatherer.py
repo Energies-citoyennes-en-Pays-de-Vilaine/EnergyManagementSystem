@@ -5,7 +5,7 @@ from credentials.zabbix_credentials import zabbix_credentials
 from credentials.db_credentials import db_credentials
 CENTI_CELSIUS_TO_CENTI_KELVIN = 27315
 TEMPERATURE_TABLE = "devicetemperaturedata"
-zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["username"], zabbix_credentials["password"])
+zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
 zr.get_token()
 items = zr.get_items()
 filtered_items = {}

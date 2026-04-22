@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 
 
 
-#TODO refactor this method to avoid code duplication and limit this file's size
+#TODO_ELFE refactor this method to avoid code duplication and limit this file's size
 #persistance prediction for P_C based on EPV's server
 CURVE_KEY        = "Equilibre General P=C bis"
 CURVE_PERIOD     = 15 * 60
 DAY_DURATION     = 24 * 60 * 60
 CURVE_DATA_TABLE = "prediction"
 
-zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["username"], zabbix_credentials["password"])
+zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
 zr.get_token()
 
 items = zr.get_items()

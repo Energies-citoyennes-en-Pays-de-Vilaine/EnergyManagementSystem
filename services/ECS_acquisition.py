@@ -8,7 +8,7 @@ DELTA_TIME = 24 * 3600 # 24H
 DELTA_TIME_24H = 24 * 3600 # 24H
 
 current_time = int(datetime.now().timestamp())
-zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["username"], zabbix_credentials["password"])
+zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
 zr.get_token()
 items = zr.get_items_by_tag("ECS")
 items_energie = []
@@ -36,7 +36,7 @@ for i in items_puissance:
             energie_conso = 0
         queries.append(EMS_ECS(items[f"{i} puissance"], energie_conso).get_create_or_update_in_table_str("ems_ecs"))
     else:
-        try:#this is a beta test code, so if it crashes then it will not corrupt the service, TODO remove the try cause when working for a while
+        try:#this is a beta test code, so if it crashes then it will not corrupt the service, TODO_ELFE remove the try cause when working for a while
             curves = zr.readData(items[f"{i} puissance"], current_time - DELTA_TIME, current_time)
             ts = [current_time - DELTA_TIME] + curves["timestamps"] + [current_time]
             power = [0.0] + curves["values"] + [0.0]

@@ -9,7 +9,7 @@ from learning.curve import Curve, make_curves
 import matplotlib.pyplot as plt
 from sys import argv
 from config.config import MachineLearnerConfig
-zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["username"], zabbix_credentials["password"])
+zr = ZabbixReader(zabbix_credentials["url"], zabbix_credentials["token"])
 PLOT_GRID = True
 def plot_bounds_for_curve(figure, curve:Curve, values):
 	max_value = max(values)
