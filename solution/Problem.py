@@ -27,7 +27,7 @@ class Problem():
     # integrality                   : List[int]
     # minimizing_matrix             : List[float]
 
-    def __init__(self, utilisateurs : List[Utilisateur], calculationParams : CalculationParams) -> None:
+    def __init__(self, utilisateurs: List[Utilisateur], calculationParams: CalculationParams) -> None:
         self.utilisateurs                  = utilisateurs
         self.calculationParams             = calculationParams
         self.has_ran                       = False
@@ -36,7 +36,7 @@ class Problem():
         self.is_ready_to_run               = False
         self.result                        = None
     
-    def create_model(self, solar_prevision: Dict[int, float]):
+    def create_model(self, solar_prevision: Dict[int, float]) -> None:
         model = pyo.ConcreteModel()
         round_start_timestamp = timestamp.get_round_timestamp()
         model.n_steps = pyo.Param(initialize = self.calculationParams.get_simulation_size(), domain = pyo.PositiveIntegers)
@@ -54,11 +54,64 @@ class Problem():
 
         self.model = model
         self.is_ready_to_run = True
+    
+    def solve(self, time_limit: int = 100, force: bool = False):
+        if self.has_results and not force:
+            return
+        # if not self.calculationParams.check():
+        #     return
+ 
+        time_limit_dict = {
+        'scip'               : "limits/time",
+        'gurobi'             : "TimeLimit",
+        }
+        solver_name = "scip"
+        solver = pyo.SolverFactory(solver_name)
+        options = {}
+        if time_limit: 
+            options[time_limit_dict[solver_name]] = time_limit
+        
+        result = solver.solve(self.model, options = options)
+        self.result = result.solver.status
+
+        self.has_results = True
+        print("Resultats: ", self.result)
+        # self.fun_val     = result.fun
+        return result
+    
+    def get_consumption(self) -> np.ndarray:
+        consumption = np.zeros((self.calculationParams.get_simulation_size(),), np.float64)
+        for u, utilisateur in enumerate(self.utilisateurs):
+            # utilisateur.get_consumption()
+            for c, consumer in enumerate(utilisateur.consumers):
+                for decision in get_model_consumer_decision(self.model.utilisateurs[u].consumers[c]):
+                    consumption += consumer.get_consumption_curve(self.calculationParams, decision)
+        return consumption
+    
+    def get_decisions(self) -> List:
+        problem_decisions = []
+        for u, utilisateur in enumerate(self.utilisateurs):
+            for c, consumer in enumerate(utilisateur.consumers):
+                decisions = get_model_consumer_decision(self.model.utilisateurs[u].consumers[c])
+                if len(problem_decisions) == 1:
+                    problem_decisions.append(
+                        {
+                            "id"            : consumer.id,
+                            "reocurring"    : consumer.is_reocurring,
+                            "is_ECS"        : type(consumer) == ECSConsumer,
+                            "decisions"     : consumer.get_decisions(self.calculationParams, decisions[0]).tolist(),
+                            "consumer"      : consumer
+                        })
+                #TODO considérer les décicions multiples (ECS, Chauffage)
+        return problem_decisions
+    
+def get_model_consumer_decision(consumer: pyo.Block) -> List[int]:
+    return [j for j in consumer.decision_set if round(pyo.value(consumer.decisions[j]),5)]
 
 #region ELFE
     # def prepare(self, force = False) :
     #     if self.is_ready_to_run and not force:
-    #         #TODO add a warning
+    #         #TODO_ELFE add a warning
     #         return
     #     consumers = self.consumers
     #     calculationParams = self.calculationParams
@@ -106,32 +159,7 @@ class Problem():
     #     self.integrality       = integrality
     #     self.minimizing_matrix = minimizing_matrix
     #     self.is_ready_to_run   = True
-#endregion
-    
-    def solve(self, time_limit: int = 100, force: bool = False):
-        if self.has_results and not force:
-            return
-        # if not self.calculationParams.check():
-        #     return
- 
-        time_limit_dict = {
-        'scip'               : "limits/time",
-        'gurobi'             : "TimeLimit",
-        }
-        solver_name = "scip"
-        solver = pyo.SolverFactory(solver_name)
-        options = {}
-        if time_limit: 
-            options[time_limit_dict[solver_name]] = time_limit
-        
-        result = solver.solve(self.model, options = options)
-        self.result = result.solver.status
 
-        self.has_results = True
-        print("Resultats: ", self.result)
-        # self.fun_val     = result.fun
-        return result
-    
     # def get_consumption_old(self) -> np.ndarray:
     #     consumption = np.zeros((self.calculationParams.get_simulation_size(),), np.float64)
     #     i = self.calculationParams.get_simulation_size()
@@ -139,29 +167,4 @@ class Problem():
     #         consumption += consumer.get_consumption_curve(self.calculationParams, self.result[i: i+consumer.get_minimizing_variables_count(self.calculationParams)])
     #         i += consumer.get_minimizing_variables_count(self.calculationParams)
     #     return consumption
-    
-    def get_consumption(self) -> np.ndarray:
-        consumption = np.zeros((self.calculationParams.get_simulation_size(),), np.float64)
-        for u, utilisateur in enumerate(self.utilisateurs):
-            for c, consumer in enumerate(utilisateur.consumers):
-                decision = get_model_consumer_decision(self.model.utilisateurs[u].consumers[c])
-                consumption += consumer.get_consumption_curve(self.calculationParams, decision)
-        return consumption
-    
-    def get_decisions(self) -> List:
-        decisions = []
-        for u, utilisateur in enumerate(self.utilisateurs):
-            for c, consumer in enumerate(utilisateur.consumers):
-                decision = get_model_consumer_decision(self.model.utilisateurs[u].consumers[c])
-                decisions.append(
-                    {
-                        "id"            : consumer.id,
-                        "reocurring"    : consumer.is_reocurring,
-                        "is_ECS"        : type(consumer) == ECSConsumer,
-                        "decisions"     : consumer.get_decisions(self.calculationParams, decision).tolist(),
-                        "consumer"      : consumer
-                    })
-        return decisions
-    
-def get_model_consumer_decision(consumer: pyo.Block) -> int:
-    return [j for j in consumer.decision_set if round(pyo.value(consumer.decisions[j]),5)][0]
+#endregion

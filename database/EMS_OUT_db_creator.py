@@ -4,14 +4,13 @@ from dataclasses import dataclass
 import typing
 from typing import Union, Dict
 from database.query import execute_queries, fetch
-from database.EMS_db_types import  EMSResult, EMSPowerCurveData
+from database.EMS_db_types import  EMSResult, EMSPowerCurveData, EMSEnergyWeather
 from database.EMS_OUT_db_types import EMSRunInfo
 def create_tables(credentials: Dict[str: str]) -> None:
 	schema = credentials["schema"] if "schema" in credentials.keys() else ""		
 	tables_queries = [
 		EMSResult.get_create_table_str("result", schema),
-		EMSPowerCurveData.get_create_table_str("p_c_with_flexible_consumption", schema),
-		EMSPowerCurveData.get_create_table_str("p_c_without_flexible_consumption", schema),
+		EMSEnergyWeather.get_create_table_str("p_c_with_flexible_consumption", schema),
 		EMSRunInfo.get_create_table_str("ems_run_info", schema)
 	]
 	if schema != "":

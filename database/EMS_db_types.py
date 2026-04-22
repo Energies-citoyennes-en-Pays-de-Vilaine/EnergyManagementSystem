@@ -66,7 +66,14 @@ class EMSDeviceTemperatureData():
 @dataclass(init=True, repr=True)
 class EMSPowerCurveData():
 	data_timestamp             : Union[int, create_DB_Annotation(is_primary=True)]
-	power                      : int 
+	power                      : int
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
+class EMSEnergyWeather():
+	data_timestamp        		: Union[int, create_DB_Annotation(is_primary=True)]
+	power          				: float
+	cohorte						: int
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)

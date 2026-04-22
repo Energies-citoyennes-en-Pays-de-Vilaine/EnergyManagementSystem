@@ -39,7 +39,7 @@ class VehicleConsumer(Consumer_interface):
 		self.consumer_machine_type = consumer_machine_type
 		self.has_base_consumption = False
 		self.is_reocurring = False
-		self.consommation = None
+		self.consommation : Dict[int, float] = None
 
 #region Maloen
 	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
@@ -97,8 +97,19 @@ class VehicleConsumer(Consumer_interface):
 
 	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamp : int) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.get_simulation_size(),), np.int64)
-		launch_step = int(round((launch_timestamp - calculationParams.begin) / calculationParams.step_size))
+		launch_step = synchronise(launch_timestamp)
 		toReturn[launch_step] = 1
+		return toReturn
+	
+	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
+		decision = (decision - calculationParams.begin) // 900
+		sim_size = calculationParams.get_simulation_size()
+		toReturn = np.zeros((sim_size,), np.float64)
+		for k, v in self.consommation.items():
+			index = k//900 + decision
+			if index >= sim_size:
+				break
+			toReturn[index] = v
 		return toReturn
 	
 #endregion
@@ -190,7 +201,7 @@ class VehicleConsumer(Consumer_interface):
 	# 	for x in range(self._get_minimizing_variables_count(calculationParams)):
 	# 		tofill[ypar, xpar + x] = 1
 
-	# def _get_consumption_curve(self, calculationParams : CalculationParams, variables : List[float]) -> np.ndarray:
+	# def old_get_consumption_curve(self, calculationParams : CalculationParams, variables : List[float]) -> np.ndarray:
 	# 	tp = self._get_calculated_time_parameters(calculationParams)
 	# 	sim_size = calculationParams.get_simulation_size()
 	# 	toReturn = np.zeros((sim_size,), np.float64)
