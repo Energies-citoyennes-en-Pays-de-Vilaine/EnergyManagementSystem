@@ -3,13 +3,12 @@ from config.config import get_config
 from math import floor
 
 def get_timestamp() -> int:
-	timestamp = synchronise(datetime.now().timestamp())
-	return timestamp
+	return synchronise(datetime.now().timestamp())
 
 def get_round_timestamp() -> int:
-	config = get_config()
-	return get_timestamp() + config.delta_time_simulation_s
+	return get_timestamp() + get_config().delta_time_simulation_s
 
-def synchronise(timestamp: int):
-	config = get_config()
-	return floor(timestamp / config.delta_time_simulation_s) * config.delta_time_simulation_s
+def synchronise(timestamp: int, delta_s: int = 0) -> int:
+	if delta_s == 0:
+		delta_s = get_config().delta_time_simulation_s
+	return floor(timestamp / delta_s) * delta_s
