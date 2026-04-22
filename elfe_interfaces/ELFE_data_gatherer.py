@@ -264,19 +264,16 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 def get_cohorte_balance() -> List[Tuple[int, float]]:
 	config = get_config()
 	round_start_timestamp = get_round_timestamp()
-	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
+	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prevision_equilibre WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_power = sorted(expected_power, key=itemgetter(0))
 	cohorte_balance = expected_power[:config.day_step_count]
-	return [(round_start_timestamp + config.delta_time_simulation_s * i, 0) for i in range(config.day_step_count)]
 	return cohorte_balance
 
 def get_production_solaire() -> Dict[int, float]:
-	config = get_config()
 	round_start_timestamp = get_round_timestamp()
-	# expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
-	# expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
-	# normal_solar_prediction = expected_solar_power[:config.day_step_count]
-	return {int(round_start_timestamp + config.delta_time_simulation_s * i): 0 for i in range(config.day_step_count)}
+	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
+	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
+	normal_solar_prediction = {solar_power_entry[0]: solar_power_entry[1] for solar_power_entry in expected_solar_power[:get_config().day_step_count]}
 	return normal_solar_prediction
 
 def get_calculation_params(simulation_datas = None) -> CalculationParams:
@@ -297,5 +294,6 @@ if __name__ == "__main__":
 	# from datetime import datetime
 	# print(get_machines(int(datetime.now().timestamp())))
 
-	print(get_panneaux_photovoltaiques(COHORTE_ID))
-	print(get_electric_vehicle(get_timestamp(), COHORTE_ID))
+	# print(get_panneaux_photovoltaiques(COHORTE_ID))
+	# print(get_electric_vehicle(get_timestamp(), COHORTE_ID))
+	print(get_production_solaire())
