@@ -3,19 +3,19 @@
 set -e
 CONFIG_FILENAME="EMS_systemd_config.txt"
 CONFIG_FOLDER="/etc/ems"
-HAS_TO_INSTALL_ANACONDA=0
-HAS_TO_UPDATE=0
-HAS_TO_INSTALL_POSTGRES=0
+HAS_TO_INSTALL_ANACONDA=1
+HAS_TO_UPDATE=1
+HAS_TO_INSTALL_POSTGRES=1
 HAS_TO_DROP_DATABASE=0
 HAS_TO_CREATE_DATABASE=1
 HAS_TO_CREATE_OUT_DATABASE=1
-HAS_TO_GRANT_PERMISSIONS=0
-HAS_TO_INSTALL_MILP=0
-HAS_TO_CREATE_SERVICES=0
+HAS_TO_GRANT_PERMISSIONS=1
+HAS_TO_INSTALL_MILP=1
+HAS_TO_CREATE_SERVICES=1
 HAS_TO_INSTALL_PREDICTION_HISTORIZER=0
 
-EMS_DB="test"
-EMS_USER="testu"
+EMS_DB="ems_db"
+EMS_USER="ems"
 EMS_DB_CONFIG_FILENAME="db_credentials.py"
 
 EMS_HISTO_PASS="0"
@@ -211,6 +211,10 @@ if [ "$HAS_TO_CREATE_SERVICES" -ne 0 ]
 	echo "installing meteo concept service"
 	systemctl enable Meteo_concept.timer
 	systemctl start Meteo_concept.timer
+
+	echo "installing zabbix prevision getter"
+	systemctl enable prevision_getter.timer
+	systemctl start prevision_getter.timer
 
 	if [ "$HAS_TO_INSTALL_PREDICTION_HISTORIZER" -ne 0 ]
 	then
