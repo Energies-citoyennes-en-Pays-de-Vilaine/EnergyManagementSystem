@@ -1,0 +1,10 @@
+[Unit]
+Description="timer for the prevision getter service"
+Requires=prevision_getter.service
+[Timer]
+Unit=prevision_getter.service
+OnCalendar=*-*-* *:14/15:00
+AccuracySec=20s
+
+[Install]
+WantedBy=timers.target

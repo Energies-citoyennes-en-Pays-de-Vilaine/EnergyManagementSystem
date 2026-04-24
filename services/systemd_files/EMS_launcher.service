@@ -5,7 +5,7 @@ Wants=EMS_launcher.timer
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/ems/EMS_systemd_config.txt
-ExecStart=/usr/bin/bash -c 'source "$BASHRCPATH"; cd "$EMSFOLDER"; conda activate milp; python -m services.EMS_launcher'
+ExecStart=/usr/bin/bash -c 'source "$BASHRCPATH"; cd "$EMSFOLDER"; conda activate milp; python -m services.EMS_launcher ACI_1'
 
 [Install]
 WantedBy=multi-user.target                         

@@ -1,0 +1,11 @@
+[Unit]
+Description="learns the cycles of the machines"
+Wants=Meteo_concept.timer
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ems/EMS_systemd_config.txt
+ExecStart=/usr/bin/bash -c 'source "$BASHRCPATH"; cd "$EMSFOLDER"; conda activate milp; python -m services.zabbix_prevision_getter'
+
+[Install]
+WantedBy=multi-user.target 

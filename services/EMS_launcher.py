@@ -76,9 +76,9 @@ if __name__ == "__main__":
 		queries = []
 		import numpy as np
 		problem_consumption = problem.get_consumption()
-		print("problem_consumption\n", problem_consumption)
+		# print("problem_consumption\n", problem_consumption)
 		meteo_energie = problem_consumption + np.array(cohorte_balance)[:,1]
-		print("meteo_energie\n", meteo_energie)
+		# print("meteo_energie\n", meteo_energie)
 		times = sim_params.get_time_array()
 		# min_conso_timestamp = None
 		# max_conso_timestamp = None
