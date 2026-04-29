@@ -271,7 +271,7 @@ def get_cohorte_balance() -> List[Tuple[int, float]]:
 
 def get_production_solaire() -> Dict[int, float]:
 	round_start_timestamp = get_round_timestamp()
-	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prediction WHERE data_timestamp >= %s ;", [round_start_timestamp]))
+	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prevision WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
 	normal_solar_prediction = {solar_power_entry[0]: solar_power_entry[1] for solar_power_entry in expected_solar_power[:get_config().day_step_count]}
 	return normal_solar_prediction

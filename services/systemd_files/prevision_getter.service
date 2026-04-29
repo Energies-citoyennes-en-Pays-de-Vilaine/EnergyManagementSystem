@@ -1,6 +1,6 @@
 [Unit]
 Description="learns the cycles of the machines"
-Wants=Meteo_concept.timer
+Wants=prevision_getter.timer
 
 [Service]
 Type=oneshot
