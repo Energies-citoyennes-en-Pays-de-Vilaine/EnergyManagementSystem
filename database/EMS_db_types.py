@@ -70,6 +70,12 @@ class EMSPowerCurveData():
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
+class EMSNormalPowerCurveData():
+	data_timestamp             : Union[int, create_DB_Annotation(is_primary=True)]
+	power                      : float
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
 class EMSEnergyWeather():
 	data_timestamp        		: Union[int, create_DB_Annotation(is_primary=True)]
 	power          				: float
