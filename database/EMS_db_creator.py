@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import typing
 from typing import Union
 from database.query import execute_queries, fetch
-from database.EMS_db_types import EMSMachineData, EMSCycle, EMSCycleData ,InitialWheatherForecast, HistoricalInitialWheatherForecast, EMSDeviceTemperatureData, EMSPowerCurveData, EMSResult, EMS_ECS, EMSResultEcs, EMS_Modele_Thermique
+from database.EMS_db_types import EMSMachineData, EMSCycle, EMSCycleData ,InitialWheatherForecast, HistoricalInitialWheatherForecast, EMSDeviceTemperatureData, EMSNormalPowerCurveData, EMSPowerCurveData, EMSResult, EMS_ECS, EMSResultEcs, EMS_Modele_Thermique
 def create_tables(credentials):
 	tables_queries = [
 		EMSCycleData.get_create_table_str("cycledata"),
@@ -13,7 +13,7 @@ def create_tables(credentials):
 		InitialWheatherForecast.get_create_table_str("initialweather"),
 		HistoricalInitialWheatherForecast.get_create_table_str("historyinitialweather"),
 		EMSDeviceTemperatureData.get_create_table_str("devicetemperaturedata"),
-		EMSPowerCurveData.get_create_table_str("normal_solar_prevision"),
+		EMSNormalPowerCurveData.get_create_table_str("normal_solar_prevision"),
 		EMSPowerCurveData.get_create_table_str("prevision_equilibre"),
 		EMSResult.get_create_table_str("result"),
 		EMSResultEcs.get_create_table_str("result_ecs"),
