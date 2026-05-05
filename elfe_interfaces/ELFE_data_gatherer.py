@@ -259,6 +259,7 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	for u, p in panneaux_photovoltaiques.items():
 		to_return[u].add_producer(p)
 
+	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}
 	return list(to_return.values())
 
 def get_cohorte_balance() -> List[Tuple[int, float]]:

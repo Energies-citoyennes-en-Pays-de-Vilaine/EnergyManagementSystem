@@ -70,3 +70,6 @@ class Utilisateur:
 
     def get_model_consumer_decision(consumer: pyo.Block) -> List[int]:
         return [j for j in consumer.decision_set if round(pyo.value(consumer.decisions[j]),5)]
+    
+    def is_consumer_empty(self) -> bool:
+        return len(self.consumers) == 0
