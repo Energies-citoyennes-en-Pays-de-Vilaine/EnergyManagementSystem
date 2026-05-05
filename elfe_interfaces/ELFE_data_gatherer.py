@@ -266,14 +266,20 @@ def get_cohorte_balance() -> List[Tuple[int, float]]:
 	round_start_timestamp = get_round_timestamp()
 	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prevision_equilibre WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_power = sorted(expected_power, key=itemgetter(0))
+	items_to_add = max(0, config.day_step_count - len(expected_power))
+	list_to_add = [(round_start_timestamp + (len(expected_power) + i) * config.delta_time_simulation_s, 0) for i in range(items_to_add)]
+	expected_power = expected_power + list_to_add
 	cohorte_balance = expected_power[:config.day_step_count]
 	return cohorte_balance
 
 def get_production_solaire() -> Dict[int, float]:
+	config = get_config()
 	round_start_timestamp = get_round_timestamp()
 	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prevision WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
-	normal_solar_prediction = {solar_power_entry[0]: solar_power_entry[1] for solar_power_entry in expected_solar_power[:get_config().day_step_count]}
+	normal_solar_prediction = {round_start_timestamp + i * config.delta_time_simulation_s: 0 for i in range(config.day_step_count)}
+	for solar_power_entry in expected_solar_power[:get_config().day_step_count]:
+		normal_solar_prediction.update({solar_power_entry[0]:solar_power_entry[1]})
 	return normal_solar_prediction
 
 def get_calculation_params(simulation_datas = None) -> CalculationParams:
@@ -296,4 +302,5 @@ if __name__ == "__main__":
 
 	# print(get_panneaux_photovoltaiques(COHORTE_ID))
 	# print(get_electric_vehicle(get_timestamp(), COHORTE_ID))
-	print(get_production_solaire())
+	print("pv: ", get_production_solaire())
+	print("ch: ", get_cohorte_balance())
