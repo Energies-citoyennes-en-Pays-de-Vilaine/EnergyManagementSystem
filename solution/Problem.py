@@ -90,8 +90,8 @@ class Problem():
         for u, utilisateur in enumerate(self.utilisateurs):
             for c, consumer in enumerate(utilisateur.consumers):
                 model_consumer = self.model.utilisateurs[u].consumers[c]
-                decisions = [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]
-                if len(problem_decisions) == 1:
+                decisions = [j for j, d in enumerate(model_consumer.decision_set) if round(pyo.value(model_consumer.decisions[d]),5)]
+                if len(decisions) == 1:
                     problem_decisions.append(
                         {
                             "id"            : consumer.id,
