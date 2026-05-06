@@ -33,7 +33,7 @@ COMMAND_USER="testusr"
 EMS_RESULT_TABLE="result"
 
 ELFE_DB="elfe_coordo"
-ELFE_OPTIONS="-c search_path=test,public"
+ELFE_OPTIONS="-c search_path=$ELFE_DB,public"
 
 EMSFOLDER="$(echo $PWD)"
 # BASHRCPATH="$(echo $HOME)/.bashrc"
