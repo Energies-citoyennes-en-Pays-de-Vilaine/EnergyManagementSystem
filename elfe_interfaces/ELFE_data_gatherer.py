@@ -90,7 +90,7 @@ def get_ECS(timestamp: int, calculation_params: CalculationParams) -> List[ECSCo
 	return (ecs_consumers)
 
 def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) -> Dict[str: VehicleConsumer]:
-	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin, "result")
+	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin - calculationParams.step_size, "result")
 	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, calculationParams.begin, vehicle_not_to_schedule)
 	vehicles : Dict[VehicleConsumer] = {}
 	for v in vehicle_to_schedule:

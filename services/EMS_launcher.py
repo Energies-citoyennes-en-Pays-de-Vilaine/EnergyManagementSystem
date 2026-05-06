@@ -7,7 +7,7 @@ from database.query import fetch, execute_queries
 from credentials.db_credentials import db_credentials
 from solution.Calculation_Params import CalculationParams
 from solution.Problem import Problem
-from typing import List
+from typing import List, Tuple
 from solution.Consumer_interface import Consumer_interface
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.Utilisateur import Utilisateur
@@ -17,6 +17,7 @@ from time import time
 from config.config import Config, get_config
 import traceback
 import sys
+import numpy as np
 
 conf : Config = get_config()
 DELTA_TIME_SIMULATION = conf.delta_time_simulation_s
@@ -24,58 +25,9 @@ STEP_COUNT = conf.day_step_count
 ONE_HOUR_SEC = 3600
 # cohorte_id = "ACI_1"
 
-if __name__ == "__main__":
-	cohorte_id = sys.argv[1]
-	timestamp = get_timestamp()
-	round_start_timestamp = get_round_timestamp()
-	cohorte_balance = get_cohorte_balance()
-	solar_expected_production = get_production_solaire()
-	sim_params: CalculationParams = get_calculation_params(cohorte_balance)
-	utilisateurs: List[Utilisateur] = []
-
-	try:
-		utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
-	except Exception as e:
-		print(e, "tb=", e.__traceback__.tb_frame)
-
-	if (conf.log_problem_settings_active):
-		log_run_conditions_to_file(f"{conf.log_problem_settings_path}/{timestamp}_{round_start_timestamp}.py", timestamp, round_start_timestamp, sim_params, utilisateurs)
-
-	try:
-		problem = Problem(utilisateurs, sim_params)
-		problem.create_model(solar_expected_production)
-		res = problem.solve(time_limit=conf.max_time_to_solve_s)
-	except Exception as e:
-		print("Erreur EMS launcher")
-		traceback.print_exc()
-		
-	decisions = problem.get_decisions()	
-	results = []
-	results_ECS = []
-	for decision in decisions:
-		result_type = 0 if decision["reocurring"] == False else 1
-		consumer : Consumer_interface = decision["consumer"]
-		if decision["is_ECS"] == False:
-			result = EMSResult(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, decision["decisions"] )
-			results.append(result)
-		else:
-			ecs_consumer : ECSConsumer = decision["consumer"]
-			result = EMSResultEcs(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, ecs_consumer.get_total_duration(), decision["decisions"])
-			results_ECS.append(result)
-	
-	
-	queries_ECS = [result.get_append_in_table_str("result_ecs") for result in results_ECS]
-	execute_queries(db_credentials["EMS"], queries_ECS)
-	results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
-	queries = [result.get_append_in_table_str("result") for result in results]
-	execute_queries(db_credentials["EMS"], queries)
-	
-	
+def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[Tuple[int, float]]) -> None:
 	if ("EMS_SORTIE" in db_credentials):
-		execute_queries(db_credentials["EMS_SORTIE"], queries)
 		queries = []
-		import numpy as np
-		problem_consumption = problem.get_consumption()
 		# print("problem_consumption\n", problem_consumption)
 		meteo_energie = problem_consumption + np.array(cohorte_balance)[:,1]
 		# print("meteo_energie\n", meteo_energie)
@@ -103,3 +55,57 @@ if __name__ == "__main__":
 
 		# queries.append(EMSRunInfo(round_start_timestamp, run_time_ms, len(utilisateurs), min_conso_timestamp, min_conso, max_conso_timestamp, max_conso).get_create_or_update_in_table_str("ems_run_info"))
 		execute_queries(db_credentials["EMS_SORTIE"], queries)
+
+if __name__ == "__main__":
+	cohorte_id = sys.argv[1]
+	timestamp = get_timestamp()
+	round_start_timestamp = get_round_timestamp()
+	cohorte_balance = get_cohorte_balance()
+	solar_expected_production = get_production_solaire()
+	sim_params: CalculationParams = get_calculation_params(cohorte_balance)
+	utilisateurs: List[Utilisateur] = []
+
+	try:
+		utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
+	except Exception as e:
+		print(e, "tb=", e.__traceback__.tb_frame)
+
+	if (conf.log_problem_settings_active):
+		log_run_conditions_to_file(f"{conf.log_problem_settings_path}/{timestamp}_{round_start_timestamp}.py", timestamp, round_start_timestamp, sim_params, utilisateurs)
+
+	if len(utilisateurs) == 0:
+		if ("EMS_SORTIE" in db_credentials):
+			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance)
+	else:
+		try:
+			problem = Problem(utilisateurs, sim_params)
+			problem.create_model(solar_expected_production)
+			res = problem.solve(time_limit=conf.max_time_to_solve_s)
+		except Exception as e:
+			print("Erreur EMS launcher")
+			traceback.print_exc()
+			
+		decisions = problem.get_decisions()	
+		results = []
+		results_ECS = []
+		for decision in decisions:
+			result_type = 0 if decision["reocurring"] == False else 1
+			consumer : Consumer_interface = decision["consumer"]
+			if decision["is_ECS"] == False:
+				result = EMSResult(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, decision["decisions"] )
+				results.append(result)
+			else:
+				ecs_consumer : ECSConsumer = decision["consumer"]
+				result = EMSResultEcs(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, ecs_consumer.get_total_duration(), decision["decisions"])
+				results_ECS.append(result)
+		
+		
+		queries_ECS = [result.get_append_in_table_str("result_ecs") for result in results_ECS]
+		execute_queries(db_credentials["EMS"], queries_ECS)
+		results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
+		queries = [result.get_append_in_table_str("result") for result in results]
+		execute_queries(db_credentials["EMS"], queries)
+		if ("EMS_SORTIE" in db_credentials):
+			execute_queries(db_credentials["EMS_SORTIE"], queries)
+		
+		write_energy_weather(problem.get_consumption(), cohorte_balance)
