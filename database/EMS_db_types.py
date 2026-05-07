@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import Union, List
 from database.annotations import PrimaryAutoInt, DBAnnotation, serializableThroughDatabase, create_DB_Annotation
+from config.config import get_config
+
+configuration = get_config()
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
@@ -89,7 +92,7 @@ class EMSResult():
 	machine_id                : int
 	result_type               : int
 	machine_type              : int
-	decisions                 : Union[int, create_DB_Annotation(is_db_list=True, db_element_count=96), List[int]]
+	decisions                 : Union[int, create_DB_Annotation(is_db_list=True, db_element_count=configuration.step_count), List[int]]
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
@@ -100,7 +103,7 @@ class EMSResultEcs():
 	result_type               : int
 	machine_type              : int
 	duration                  : int
-	decisions                 : Union[int, create_DB_Annotation(is_db_list=True, db_element_count=96), List[int]]
+	decisions                 : Union[int, create_DB_Annotation(is_db_list=True, db_element_count=configuration.step_count), List[int]]
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)

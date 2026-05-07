@@ -267,10 +267,10 @@ def get_cohorte_balance() -> List[Tuple[int, float]]:
 	round_start_timestamp = get_round_timestamp()
 	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prevision_equilibre WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_power = sorted(expected_power, key=itemgetter(0))
-	items_to_add = max(0, config.day_step_count - len(expected_power))
+	items_to_add = max(0, config.step_count - len(expected_power))
 	list_to_add = [(round_start_timestamp + (len(expected_power) + i) * config.delta_time_simulation_s, 0) for i in range(items_to_add)]
 	expected_power = expected_power + list_to_add
-	cohorte_balance = expected_power[:config.day_step_count]
+	cohorte_balance = expected_power[:config.step_count]
 	return cohorte_balance
 
 def get_production_solaire() -> Dict[int, float]:
@@ -278,8 +278,8 @@ def get_production_solaire() -> Dict[int, float]:
 	round_start_timestamp = get_round_timestamp()
 	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prevision WHERE data_timestamp >= %s ;", [round_start_timestamp]))
 	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
-	normal_solar_prediction = {round_start_timestamp + i * config.delta_time_simulation_s: 0 for i in range(config.day_step_count)}
-	for solar_power_entry in expected_solar_power[:get_config().day_step_count]:
+	normal_solar_prediction = {round_start_timestamp + i * config.delta_time_simulation_s: 0 for i in range(config.step_count)}
+	for solar_power_entry in expected_solar_power[:get_config().step_count]:
 		normal_solar_prediction.update({solar_power_entry[0]:solar_power_entry[1]})
 	return normal_solar_prediction
 
@@ -290,10 +290,10 @@ def get_calculation_params(simulation_datas = None) -> CalculationParams:
 		simulation_datas = get_cohorte_balance()
 	sim_params = CalculationParams(
 		round_start_timestamp,
-		timestamp + config.day_count * config.day_step_count * config.delta_time_simulation_s,
+		timestamp + config.step_count * config.delta_time_simulation_s,
 		config.delta_time_simulation_s,
 		config.delta_time_simulation_s,
-		[[-int(simulation_datas[i][1]) for i in range(config.day_step_count)]]
+		[[-int(simulation_datas[i][1]) for i in range(config.step_count)]]
 	)
 	return sim_params
 

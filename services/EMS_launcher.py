@@ -20,8 +20,6 @@ import sys
 import numpy as np
 
 conf : Config = get_config()
-DELTA_TIME_SIMULATION = conf.delta_time_simulation_s
-STEP_COUNT = conf.day_step_count
 ONE_HOUR_SEC = 3600
 # cohorte_id = "ACI_1"
 
