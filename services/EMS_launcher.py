@@ -77,7 +77,7 @@ if __name__ == "__main__":
 	else:
 		try:
 			problem = Problem(utilisateurs, sim_params)
-			problem.create_model(solar_expected_production)
+			problem.create_pyo_model(solar_expected_production)
 			res = problem.solve(time_limit=conf.max_time_to_solve_s)
 		except Exception as e:
 			print("Erreur EMS launcher")

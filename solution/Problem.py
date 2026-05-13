@@ -36,11 +36,13 @@ class Problem():
         self.is_ready_to_run               = False
         self.result                        = None
     
-    def create_model(self, solar_prevision: Dict[int, float]) -> None:
+    def create_pyo_model(self, solar_prevision: Dict[int, float]) -> None:
         model = pyo.ConcreteModel()
         round_start_timestamp = timestamp.get_round_timestamp()
         model.n_steps = pyo.Param(initialize = self.calculationParams.get_simulation_size(), domain = pyo.PositiveIntegers)
         model.steps = pyo.RangeSet(round_start_timestamp, round_start_timestamp + (model.n_steps - 1) * self.calculationParams.step_size, self.calculationParams.step_size)
+
+        model.equilibre = pyo.Param(model.steps, initialize = solar_prevision, domain = pyo.Reals)
 
         model.n_users = pyo.Param(initialize = len(self.utilisateurs), domain = pyo.PositiveIntegers)
         model.users_id = pyo.RangeSet(0, model.n_users - 1)
@@ -48,9 +50,19 @@ class Problem():
         for i, utilisateur in enumerate(self.utilisateurs):
             utilisateur.create_block_submodel(model.utilisateurs[i], model.steps, self.calculationParams, solar_prevision)
         
+        def E_ACC_TOT_limit(block, t):
+            return sum(block.utilisateurs[u].E_ACC[t] for u in block.users_id) <= block.equilibre[t]
+        model.E_ACC_TOT_limit = pyo.Constraint(model.steps, rule = E_ACC_TOT_limit)
+
+        #pas HC
         def objective_function(m):
-            return sum(sum(m.utilisateurs[u].imports[t] for t in m.steps) for u in m.users_id)
+            return sum(self.utilisateurs[u].get_sum_energy(m.utilisateurs[u], m.steps) for u in m.users_id)
         model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)  
+
+        # #ACI pur
+        # def objective_function(m):
+        #     return sum(sum(m.utilisateurs[u].imports[t] for t in m.steps) for u in m.users_id)
+        # model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)  
 
         self.model = model
         self.is_ready_to_run = True

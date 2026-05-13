@@ -35,7 +35,7 @@ class Utilisateur:
         self.production = to_return
 
     def create_block_submodel(self, submodel: pyo.Block, steps: pyo.RangeSet, calculationParams: CalculationParams, solar_prevision: Dict[int, float]) -> None:        
-        submodel.production = pyo.Param(steps, initialize = self.get_production(solar_prevision), domain = pyo.Reals)
+        submodel.production = pyo.Param(steps, initialize = self.get_production(solar_prevision), domain = pyo.Reals) #Production ACI
 
         submodel.n_consumer = pyo.Param(initialize = len(self.consumers))
         submodel.consumer_id = pyo.RangeSet(0, submodel.n_consumer - 1)
@@ -43,16 +43,35 @@ class Utilisateur:
         for i, consumer in enumerate(self.consumers):
             consumer.create_consumer(submodel.consumers[i], calculationParams)
 
-        #TODO calendrier
-        # submodel.horaires = pyo.Param(steps, initialize = self.horaireHC.calculate_steps(params.begin))
+        submodel.E_ACI = pyo.Var(steps, domain = pyo.NonNegativeReals)
+        submodel.E_ACC = pyo.Var(steps, domain = pyo.NonNegativeReals)
+        submodel.E_IMP = pyo.Var(steps, domain = pyo.NonNegativeReals)
+        
+        def E_ACI_limit(block, t):
+            return block.E_ACI[t] <= submodel.production[t]
+        submodel.E_ACI_limit = pyo.Constraint(steps, rule = E_ACI_limit)       
 
-        submodel.imports = pyo.Var(steps)
-        def import_pos(block, t):
-            return block.imports[t] >= 0
-        submodel.import_pos = pyo.Constraint(steps, rule = import_pos)
-        def import_formula(block, t):
-            return block.imports[t] >= (sum(c.get_consumption_t(block.consumers[i], calculationParams, t) for i, c in enumerate(self.consumers)) - block.production[t])# * (submodel.horaires[t] * 49 + 1)
-        submodel.import_formula = pyo.Constraint(steps, rule = import_formula)
+        def E_TOT_limit(block, t):
+            return block.E_ACI[t] + block.E_ACC[t] + block.E_IMP[t] >= sum(c.get_consumption_t(block.consumers[i], calculationParams, t) for i, c in enumerate(self.consumers))
+        submodel.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
+
+        # #ACI pur
+        # submodel.imports = pyo.Var(steps)
+        # def import_pos(block, t):
+        #     return block.imports[t] >= 0
+        # submodel.import_pos = pyo.Constraint(steps, rule = import_pos)
+        # def import_formula(block, t):
+        #     return block.imports[t] >= (sum(c.get_consumption_t(block.consumers[i], calculationParams, t) for i, c in enumerate(self.consumers)) - block.production[t])
+        # submodel.import_formula = pyo.Constraint(steps, rule = import_formula)
+
+    def get_sum_energy(self, user_block: pyo.Block, steps):
+        PRIX = {"ACI": 0, "ACCHC": 1, "ACCHP": 10, "IMPHC": 5, "IMPHP": 50} 
+        return sum( user_block.E_ACI[step] * PRIX["ACI"] +
+                    user_block.E_ACC[step] * PRIX["ACC" + ["HC", "HP"][self.get_HPHC(step)]] +
+                    user_block.E_IMP[step] * PRIX["IMP" + ["HC", "HP"][self.get_HPHC(step)]]    for step in steps)
+
+    def get_HPHC(self, step):
+        return 0 if step%96<=8*4 or step % 96 >= 20*4 else 1 #TODO selection en fonction du calendrierHPHC interne
 
     def get_consumption(self, user_block: pyo.Block, calculationParams: CalculationParams) -> np.ndarray:
         simsize = calculationParams.get_simulation_size()
