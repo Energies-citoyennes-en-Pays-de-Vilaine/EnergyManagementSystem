@@ -1,15 +1,15 @@
 
-# from solution.Consumer_interface import Consumer_interface
 from solution.Utilisateur import Utilisateur
 from solution.Calculation_Params import CalculationParams
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.Exceptions.SpecifiedListTypeException import SpecifiedListTypeException, check_for_specified_list_type_exception
 from typing import *
-# import scipy.optimize as opt
 import numpy as np
 import pyomo.environ as pyo
 from utils.time import timestamp
-
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib.lines import Line2D
 
 class Problem():
     utilisateurs                  : List[Utilisateur]
@@ -20,49 +20,39 @@ class Problem():
     is_ready_to_run               : bool
     result                        : np.ndarray
     model                         : pyo.ConcreteModel
-    # consumers                     : List[Consumer_interface]
-    # constraint_matrix             : np.ndarray
-    # constraint_low                : List[float]
-    # constraint_high               : List[float]
-    # integrality                   : List[int]
-    # minimizing_matrix             : List[float]
 
-    def __init__(self, utilisateurs: List[Utilisateur], calculationParams: CalculationParams) -> None:
+    def __init__(self, utilisateurs: List[Utilisateur], calculationParams: CalculationParams, solar_previsions: Dict[int, float], cohorte_balance: List[Tuple[int, float]]) -> None:
         self.utilisateurs                  = utilisateurs
         self.calculationParams             = calculationParams
+        self.solar_previsions              = solar_previsions
+        self.cohorte_balance               = cohorte_balance
         self.has_ran                       = False
         self.is_optimal                    = False
         self.has_results                   = False
         self.is_ready_to_run               = False
         self.result                        = None
     
-    def create_pyo_model(self, solar_prevision: Dict[int, float]) -> None:
+    def create_pyo_model(self) -> None:
         model = pyo.ConcreteModel()
         round_start_timestamp = timestamp.get_round_timestamp()
         model.n_steps = pyo.Param(initialize = self.calculationParams.get_simulation_size(), domain = pyo.PositiveIntegers)
         model.steps = pyo.RangeSet(round_start_timestamp, round_start_timestamp + (model.n_steps - 1) * self.calculationParams.step_size, self.calculationParams.step_size)
 
-        model.equilibre = pyo.Param(model.steps, initialize = solar_prevision, domain = pyo.Reals)
+        model.equilibre = pyo.Param(model.steps, initialize = self.cohorte_balance, domain = pyo.Reals)
 
         model.n_users = pyo.Param(initialize = len(self.utilisateurs), domain = pyo.PositiveIntegers)
         model.users_id = pyo.RangeSet(0, model.n_users - 1)
         model.utilisateurs = pyo.Block(model.users_id)
         for i, utilisateur in enumerate(self.utilisateurs):
-            utilisateur.create_block_submodel(model.utilisateurs[i], model.steps, self.calculationParams, solar_prevision)
+            utilisateur.create_block_submodel(model.utilisateurs[i], model.steps, self.calculationParams, self.solar_previsions)
         
         def E_ACC_TOT_limit(block, t):
             return sum(block.utilisateurs[u].E_ACC[t] for u in block.users_id) <= block.equilibre[t]
         model.E_ACC_TOT_limit = pyo.Constraint(model.steps, rule = E_ACC_TOT_limit)
 
-        #pas HC
         def objective_function(m):
             return sum(self.utilisateurs[u].get_sum_energy(m.utilisateurs[u], m.steps) for u in m.users_id)
-        model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)  
-
-        # #ACI pur
-        # def objective_function(m):
-        #     return sum(sum(m.utilisateurs[u].imports[t] for t in m.steps) for u in m.users_id)
-        # model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)  
+        model.objective = pyo.Objective(rule = objective_function, sense = pyo.minimize)
 
         self.model = model
         self.is_ready_to_run = True
@@ -70,8 +60,6 @@ class Problem():
     def solve(self, time_limit: int = 100, force: bool = False):
         if self.has_results and not force:
             return
-        # if not self.calculationParams.check():
-        #     return
  
         time_limit_dict = {
         'scip'               : "limits/time",
@@ -88,7 +76,6 @@ class Problem():
 
         self.has_results = True
         print("Resultats: ", self.result)
-        # self.fun_val     = result.fun
         return result
     
     def get_consumption(self) -> np.ndarray:
@@ -115,66 +102,41 @@ class Problem():
                 #TODO considérer les décicions multiples (ECS, Chauffage)
         return problem_decisions
     
+    def show_consumptions(self) -> None:
+        n_users = len(self.utilisateurs)
+        vals = np.ones((n_users, 4))
+        vals[:, 0] = np.linspace(254/256, 255/256, n_users)
+        vals[:, 1] = np.linspace(203/256, 239/256, n_users)
+        vals[:, 2] = np.linspace(27/256, 188/256, n_users)
+        yellows = ListedColormap(vals)
+
+        data = []
+        plt.bar(x = np.array(self.calculationParams.get_time_array()), height=[self.cohorte_balance[1] for _ in len(self.cohorte_balance)])
+        for i, utilisateur in enumerate(self.utilisateurs):
+            curent_data = utilisateur.get_consumption(self.model.utilisateurs[utilisateur], self.calculationParams)
+            data.append(curent_data)
+            plt.bar(x = np.arange(self.calculationParams.simulation_size), height = curent_data, bottom=sum(data[0:i]), color=yellows(i), width=0.5, label=(None if i else "Consommation"))
+        plt.bar(x = np.arange(self.calculationParams.simulation_size), height = [min(0,self.cohorte_balance[i][1]-sum(data)[i]) for i in range(self.calculationParams.simulation_size)], width=.5)
+        plt.legend(handles=[Line2D([0],[0], color="#008440", lw=8, label="Heure Creuse"),
+                            Line2D([0],[0], color="#173C74", lw=8, label="Heure Pleine"),
+                            Line2D([0],[0], color="#FECB1B", lw=8, label="Consommation"),
+                            Line2D([0],[0], color="#C44536", lw=8, label="Import")])
+        plt.show()
+
+    def show_user_consumptions(self) -> None:
+        n_users = len(self.utilisateurs)
+        x = int(np.ceil(np.sqrt(n_users)))
+        y = int(np.floor(np.sqrt(n_users)))
+        fig = plt.figure()
+        grid = fig.add_gridspec(y, x, hspace = 0, wspace = 0)
+        axs = grid.subplots(sharex=True, sharey=True)
+        for i, utilisateur in enumerate(self.utilisateurs):
+            utilisateur.show_user_consumptions(plt_ax=axs[i//x, i%x], user_block=self.model.utilisateurs[i], calculationParams=self.calculationParams)
+        fig.legend(handles=[Line2D([0],[0], color="#008440", lw=8, label="Heure Creuse"),
+                            Line2D([0],[0], color="#173C74", lw=8, label="Heure Pleine"),
+                            Line2D([0],[0], color="#FECB1B", lw=8, label="Consommation"),
+                            Line2D([0],[0], color="#C44536", lw=8, label="Import")])
+        plt.show()
+    
 def get_model_consumer_decision(consumer: pyo.Block) -> List[int]:
     return [j for j in consumer.decision_set if round(pyo.value(consumer.decisions[j]),5)]
-
-#region ELFE
-    # def prepare(self, force = False) :
-    #     if self.is_ready_to_run and not force:
-    #         #TODO_ELFE add a warning
-    #         return
-    #     consumers = self.consumers
-    #     calculationParams = self.calculationParams
-    #     check_for_specified_list_type_exception(consumers, Consumer_interface)
-    #     check_for_specified_list_type_exception(calculationParams.base_minimization_constraints, List)
-    #     for base_minimization_constraint in calculationParams.base_minimization_constraints:
-    #         check_for_specified_list_type_exception(base_minimization_constraint, float)
-    #     constraint_matrix_width  = calculationParams.get_simulation_size()
-    #     constraint_matrix_height = calculationParams.get_simulation_size()
-    #     for consumer in consumers:
-    #         constraint_matrix_width  += consumer.get_minimizing_variables_count(calculationParams)
-    #         constraint_matrix_height += consumer.get_constraints_size(calculationParams)
-    #     constraint_matrix = np.zeros((constraint_matrix_height, constraint_matrix_width), dtype=np.float64)
-    #     current_x = 0
-    #     current_y = 0
-    #     for i in range(calculationParams.get_simulation_size()):
-    #         constraint_matrix[i, i] = 1
-    #     current_x += calculationParams.get_simulation_size()
-    #     current_y += calculationParams.get_simulation_size()
-    #     constraint_low    = []
-    #     for base_minimization_constraint in calculationParams.base_minimization_constraints:
-    #         constraint_low += base_minimization_constraint
-    #     for consumer in consumers:
-    #         if consumer.has_base_consumption:
-    #             consumer_base_consumption = consumer.get_base_consumption(calculationParams)
-    #             for i in range(len(consumer_base_consumption)):
-    #                 if consumer_base_consumption[i] != 0:
-    #                     constraint_low[i] += consumer_base_consumption[i]
-    #     constraint_high   = [np.inf for i in range(calculationParams.get_simulation_size())]
-    #     minimizing_matrix = [1 for i in range(calculationParams.get_simulation_size())]
-    #     integrality       = [0 for i in range(calculationParams.get_simulation_size())]
-    #     for consumer in consumers:
-    #         consumer.fill_minimizing_constraints(calculationParams, constraint_matrix, [current_x], [0])
-    #         consumer.fill_functionnal_constraints(calculationParams, constraint_matrix, current_x, current_y)
-    #         current_x += consumer.get_minimizing_variables_count(calculationParams)
-    #         current_y += consumer.get_constraints_size(calculationParams)
-    #         consumer_constraints_boundaries = consumer.get_functionnal_constraints_boundaries(calculationParams)
-    #         constraint_low    += consumer_constraints_boundaries[0]
-    #         constraint_high   += consumer_constraints_boundaries[1]
-    #         minimizing_matrix += consumer.get_f_contrib(calculationParams)
-    #         integrality       += consumer.get_integrality(calculationParams)
-    #     self.constraint_matrix = constraint_matrix
-    #     self.constraint_bound_low    = constraint_low
-    #     self.constraint_bound_high   = constraint_high
-    #     self.integrality       = integrality
-    #     self.minimizing_matrix = minimizing_matrix
-    #     self.is_ready_to_run   = True
-
-    # def get_consumption_old(self) -> np.ndarray:
-    #     consumption = np.zeros((self.calculationParams.get_simulation_size(),), np.float64)
-    #     i = self.calculationParams.get_simulation_size()
-    #     for consumer in self.consumers:
-    #         consumption += consumer.get_consumption_curve(self.calculationParams, self.result[i: i+consumer.get_minimizing_variables_count(self.calculationParams)])
-    #         i += consumer.get_minimizing_variables_count(self.calculationParams)
-    #     return consumption
-#endregion

@@ -4,6 +4,8 @@ from solution.Production_interface import Producer_interface
 from solution.Calculation_Params import CalculationParams
 import pyomo.environ as pyo
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 class Utilisateur:
     id          : int
@@ -55,15 +57,6 @@ class Utilisateur:
             return block.E_ACI[t] + block.E_ACC[t] + block.E_IMP[t] >= sum(c.get_consumption_t(block.consumers[i], calculationParams, t) for i, c in enumerate(self.consumers))
         submodel.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
-        # #ACI pur
-        # submodel.imports = pyo.Var(steps)
-        # def import_pos(block, t):
-        #     return block.imports[t] >= 0
-        # submodel.import_pos = pyo.Constraint(steps, rule = import_pos)
-        # def import_formula(block, t):
-        #     return block.imports[t] >= (sum(c.get_consumption_t(block.consumers[i], calculationParams, t) for i, c in enumerate(self.consumers)) - block.production[t])
-        # submodel.import_formula = pyo.Constraint(steps, rule = import_formula)
-
     def get_sum_energy(self, user_block: pyo.Block, steps):
         PRIX = {"ACI": 0, "ACCHC": 1, "ACCHP": 10, "IMPHC": 5, "IMPHP": 50} 
         return sum( user_block.E_ACI[step] * PRIX["ACI"] +
@@ -92,3 +85,26 @@ class Utilisateur:
     
     def is_consumer_empty(self) -> bool:
         return len(self.consumers) == 0
+    
+    def show_user_consumptions(self, plt_ax, user_block : pyo.Block, calculationParams: CalculationParams) -> None:
+        machine_number = len(self.consumers)
+        vals = np.ones((machine_number, 4))
+        vals[:, 0] = np.linspace(254/256, 255/256, machine_number)
+        vals[:, 1] = np.linspace(203/256, 239/256, machine_number)
+        vals[:, 2] = np.linspace(27/256, 188/256, machine_number)
+        yellows = ListedColormap(vals)
+
+        data = []
+        production_colors = [["#008440","#173C74"][self.get_HPHC(s)] for s in calculationParams.get_time_array()]
+        plt_ax.bar(x=np.arange(calculationParams.simulation_size), height=self.get_production().values(), color=production_colors, width=1)
+        for c, consumer in enumerate(self.consumers):
+            model_consumer = user_block.consumers[c]
+            curent_data = np.zeros((calculationParams.get_simulation_size(),), np.float64)
+            for decision in [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]:
+                curent_data += consumer.get_consumption_curve(calculationParams, decision)
+            data.append(curent_data)
+            plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = curent_data, bottom=sum(data[0:c]), color=yellows(c), width=.5)
+        plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = [min(0,list(self.get_production().values())[i]-sum(data)[i]) for i in range(calculationParams.simulation_size)], color = "#C44536", width=.5)
+
+        plt_ax.set_ylabel("Puissance (W)")
+        plt_ax.label_outer()

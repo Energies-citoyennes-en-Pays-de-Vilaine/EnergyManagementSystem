@@ -76,8 +76,8 @@ if __name__ == "__main__":
 			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance)
 	else:
 		try:
-			problem = Problem(utilisateurs, sim_params)
-			problem.create_pyo_model(solar_expected_production)
+			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance)
+			problem.create_pyo_model()
 			res = problem.solve(time_limit=conf.max_time_to_solve_s)
 		except Exception as e:
 			print("Erreur EMS launcher")
@@ -96,7 +96,6 @@ if __name__ == "__main__":
 				ecs_consumer : ECSConsumer = decision["consumer"]
 				result = EMSResultEcs(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, ecs_consumer.get_total_duration(), decision["decisions"])
 				results_ECS.append(result)
-		
 		
 		queries_ECS = [result.get_append_in_table_str("result_ecs") for result in results_ECS]
 		execute_queries(db_credentials["EMS"], queries_ECS)
