@@ -17,7 +17,7 @@ class CalculationParams():
 		self.end = synchronise(end) #end is always included in the simulation; this may be important for later
 		self.step_size = step_size
 		self.time_delta = time_delta
-		self.simulation_size = (self.end - self.begin) / self.step_size + 1
+		self.simulation_size = int((self.end - self.begin) / self.step_size) + 1
 		self.check()
 
 	def check(self, werror = True) -> bool:
@@ -35,4 +35,4 @@ class CalculationParams():
 		return int(result) + 1
 	
 	def get_time_array(self):
-		return [i * self.step_size + self.begin for i in range(self.get_simulation_size())]
+		return [i * self.step_size + self.begin for i in range(self.simulation_size)]
