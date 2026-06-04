@@ -1,6 +1,6 @@
 # from elfe_interfaces.ELFE_data_gatherer import get_machines, get_ECS, get_electric_vehicle, get_sum_consumer, get_heater_consumer
-from elfe_interfaces.ELFE_data_gatherer import get_calculation_params, get_cohorte_balance, get_utilisateurs, get_production_solaire
-from utils.time.timestamp import get_round_timestamp, get_timestamp
+from elfe_interfaces.ELFE_data_gatherer import get_calculation_params, get_cohorte_balance, get_utilisateurs, get_production_solaire, show_productions
+from utils.time.timestamp import get_round_timestamp, get_timestamp, synchronise
 from database.EMS_db_types import EMSPowerCurveData, EMSResult, EMSResultEcs, EMSEnergyWeather
 from database.EMS_OUT_db_types import EMSRunInfo
 from database.query import fetch, execute_queries
@@ -56,11 +56,17 @@ def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[
 
 if __name__ == "__main__":
 	cohorte_id = sys.argv[1]
-	timestamp = get_timestamp()
-	round_start_timestamp = get_round_timestamp()
-	cohorte_balance = get_cohorte_balance()
-	solar_expected_production = get_production_solaire()
-	sim_params: CalculationParams = get_calculation_params(cohorte_balance)
+	if len(sys.argv) >= 3:
+		timestamp = synchronise(int(sys.argv[2]))
+		round_start_timestamp = timestamp + get_config().delta_time_simulation_s
+	else:
+		timestamp = get_timestamp()
+		round_start_timestamp = get_round_timestamp()
+	cohorte_balance = get_cohorte_balance(round_start_timestamp)
+	cohorte_balance_dict = {t[0]:t[1] for t in cohorte_balance}
+	# show_productions(round_start_timestamp)
+	solar_expected_production = get_production_solaire(round_start_timestamp)
+	sim_params: CalculationParams = get_calculation_params(simulation_datas=cohorte_balance, timestamp=timestamp)
 	utilisateurs: List[Utilisateur] = []
 
 	try:
@@ -76,7 +82,7 @@ if __name__ == "__main__":
 			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance)
 	else:
 		try:
-			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance)
+			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance_dict)
 			problem.create_pyo_model()
 			res = problem.solve(time_limit=conf.max_time_to_solve_s)
 		except Exception as e:
@@ -101,8 +107,10 @@ if __name__ == "__main__":
 		execute_queries(db_credentials["EMS"], queries_ECS)
 		results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
 		queries = [result.get_append_in_table_str("result") for result in results]
-		execute_queries(db_credentials["EMS"], queries)
-		if ("EMS_SORTIE" in db_credentials):
-			execute_queries(db_credentials["EMS_SORTIE"], queries)
+		# execute_queries(db_credentials["EMS"], queries)
+		# if ("EMS_SORTIE" in db_credentials):
+		# 	execute_queries(db_credentials["EMS_SORTIE"], queries)
 		
 		write_energy_weather(problem.get_consumption(), cohorte_balance)
+		problem.show_consumptions()
+		problem.show_user_consumptions()
