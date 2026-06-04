@@ -58,10 +58,10 @@ class VehicleConsumer(Consumer_interface):
 			self._calcul_consommation(calculationParams)
 		tp = self._get_calculated_time_parameters(calculationParams)
 		to_return = 0
-		if tp["start_time"] < step_timestamp < tp["last_time_min_charge"]:
-			for lancement_timestamp in range(tp["start_time"], tp["last_time_min_charge"], calculationParams.step_size):
+		if tp["start_time"] <= step_timestamp <= tp["end_time"]:
+			for lancement_timestamp in consumerBlock.decision_set:
 				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= tp["min_charge_time"] 
-				  				else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
+								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
 		return to_return
 	
 	def _get_calculated_time_parameters(self, calculationParams: CalculationParams) -> _CalculatedTimeParameters:
