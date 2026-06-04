@@ -5,17 +5,18 @@ from typing import List
 from datetime import datetime
 
 ELFE_database_names = {
-	"ELFE_BallonECS"                       : "equipement_pilote_ballon_ecs",
-	"ELFE_BallonECSHeuresCreuses"          : "equipement_pilote_ballon_ecs_heures_creuses",
-	"ELFE_ChauffageAsservi"                : "equipement_pilote_chauffage_asservi",
-	"ELFE_ChauffageAsserviModeleThermique" : "chauffage_asservi_modele_thermique",
-	"ELFE_ChauffageNonAsservi"             : "equipement_pilote_chauffage_non_asservi",
-	"ELFE_EquipementPilote"                : "equipement_pilote_ou_mesure",
-	"ELFE_MachineGenerique"                : "equipement_pilote_machine_generique",
-	"ELFE_MachineGeneriqueCycle"           : "equipement_pilote_machine_generique_cycle",
-	"ELFE_VehiculeElectriqueGenerique"     : "equipement_pilote_vehicule_electrique_generique",
-	"ELFE_PanneauxPhotovoltaiques"		   : "equipement_mesure_centrale_elec_generique",
-	"ELFE_Utilisateur"					   : "utilisateur",
+	"ELFE_BallonECS"                      	: "equipement_pilote_ballon_ecs",
+	"ELFE_BallonECSHeuresCreuses"         	: "equipement_pilote_ballon_ecs_heures_creuses",
+	"ELFE_ChauffageAsservi"               	: "equipement_pilote_chauffage_asservi",
+	"ELFE_ChauffageAsserviModeleThermique"	: "chauffage_asservi_modele_thermique",
+	"ELFE_ChauffageNonAsservi"            	: "equipement_pilote_chauffage_non_asservi",
+	"ELFE_EquipementPilote"               	: "equipement_pilote_ou_mesure",
+	"ELFE_MachineGenerique"               	: "equipement_pilote_machine_generique",
+	"ELFE_MachineGeneriqueCycle"          	: "equipement_pilote_machine_generique_cycle",
+	"ELFE_VehiculeElectriqueGenerique"    	: "equipement_pilote_vehicule_electrique_generique",
+	"ELFE_PanneauxPhotovoltaiques"		  	: "equipement_mesure_centrale_elec_generique",
+	"ELFE_Utilisateur"					  	: "utilisateur",
+	"ELFE_Cohorte"						  	: "cohorte_utilisateurs",
 }
 
 @serializableThroughDatabase
