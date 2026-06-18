@@ -47,9 +47,9 @@ class Utilisateur:
         for i, consumer in enumerate(self.consumers):
             consumer.create_consumer(user_block.consumers[i], calculationParams)
 
-        user_block.E_ACI = pyo.Var(steps, domain = pyo.NonNegativeReals)#, initialize = 0)
-        user_block.E_ACC = pyo.Var(steps, domain = pyo.NonNegativeReals)#, initialize = 0)
-        user_block.E_IMP = pyo.Var(steps, domain = pyo.NonNegativeReals)#, initialize = 0)
+        user_block.E_ACI = pyo.Var(steps, domain = pyo.NonNegativeReals)
+        user_block.E_ACC = pyo.Var(steps, domain = pyo.NonNegativeReals)
+        user_block.E_IMP = pyo.Var(steps, domain = pyo.NonNegativeReals)
         
         def E_ACI_limit(block, t):
             return block.E_ACI[t] <= user_block.production[t]
@@ -59,10 +59,8 @@ class Utilisateur:
             return (block.E_ACI[t] + block.E_ACC[t] + block.E_IMP[t]) >= sum(consumer.get_consumption_t(block.consumers[i], calculationParams, t) for i, consumer in enumerate(self.consumers))
         user_block.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
-        # print(sum(consumer.get_consumption_t(user_block.consumers[i], calculationParams, list(steps)[-1]) for i, consumer in enumerate(self.consumers)))
-
     def get_sum_energy(self, user_block: pyo.Block, steps):
-        PRIX = {"ACI": 0.01, "ACCHC": 1, "ACCHP": 10, "IMPHC": 5, "IMPHP": 50}
+        PRIX = {"ACI": 0.01, "ACCHC": 1, "ACCHP": 5, "IMPHC": 10, "IMPHP": 50}
         return sum( user_block.E_ACI[step] * PRIX["ACI"] +
                     user_block.E_ACC[step] * PRIX["ACC" + ["HC", "HP"][self.is_step_HPHC(step)]] +
                     user_block.E_IMP[step] * PRIX["IMP" + ["HC", "HP"][self.is_step_HPHC(step)]]    for step in steps)
@@ -118,7 +116,7 @@ class Utilisateur:
             plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = curent_data, bottom=sum(data[0:c]), color=yellows(c), zorder=2, width=.4)#, width=.4
         plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = [min(0,list(self.get_production().values())[i] - sum(data)[i]) for i in range(calculationParams.simulation_size)], color="#C44536", width=.5, zorder=2)
         step_x_ticks = [i for i in range(0, calculationParams.simulation_size, 24)]
-        step_x_label = ["{:%a %d %Hh%M}".format(dt.datetime.fromtimestamp(timestamp = calculationParams.begin) + dt.timedelta(seconds=calculationParams.step_size) * i) for i in step_x_ticks]
+        step_x_label = ["{:%a %d %Hh%M}".format(dt.datetime.fromtimestamp(timestamp = calculationParams.begin) + dt.timedelta(seconds=calculationParams.step_size_s) * i) for i in step_x_ticks]
         plt_ax.set_xticks(step_x_ticks, labels=step_x_label, rotation=45, ha="right", rotation_mode="anchor", size=7)
         plt_ax.set_ylabel("Puissance (W)")
         plt_ax.label_outer()

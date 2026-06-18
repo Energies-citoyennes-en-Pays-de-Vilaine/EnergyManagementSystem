@@ -40,11 +40,11 @@ class MachineConsumer(Consumer_interface):
 
     def _get_constraints_repr(self, calculationParams : CalculationParams) -> str:
         tp = self._get_calculated_time_parameters(calculationParams)
-        return f"Machine {self.id} (start={tp['start_time']}, end={tp['end_time']}, steps={tp['steps_count']}), {self.start_time} : {calculationParams.begin}, {self.end_time} : {calculationParams.end} : {calculationParams.step_size} "
+        return f"Machine {self.id} (start={tp['start_time']}, end={tp['end_time']}, steps={tp['steps_count']}), {self.start_time} : {calculationParams.begin}, {self.end_time} : {calculationParams.end} : {calculationParams.step_size_s} "
     
     def _get_calculated_time_parameters(self, calculationParams: CalculationParams) -> _CalculatedTimeParametersMachine:
         start_time = maxi(self.start_time, calculationParams.begin)
-        end_time = mini(self.end_time, calculationParams.end + calculationParams.step_size)
+        end_time = mini(self.end_time, calculationParams.end + calculationParams.step_size_s)
         step_count = len(self.profile)
         return {
             "start_time"  : start_time,
@@ -87,12 +87,12 @@ class MachineConsumer(Consumer_interface):
     def _get_minimizing_variables_count(self, calculationParams : CalculationParams) -> int:
         self._make_machine_possible(calculationParams)
         start_time = maxi(self.start_time, calculationParams.begin)
-        end_time = mini(self.end_time, calculationParams.end + calculationParams.step_size)
-        steps_count = (end_time - start_time) / calculationParams.step_size
+        end_time = mini(self.end_time, calculationParams.end + calculationParams.step_size_s)
+        steps_count = (end_time - start_time) / calculationParams.step_size_s
         steps_count -= len(self.profile)
         steps_count = round(steps_count)
         if steps_count < 0:
-            print(steps_count, start_time, end_time, calculationParams.step_size)
+            print(steps_count, start_time, end_time, calculationParams.step_size_s)
         return steps_count + 1
 
     def _get_constraints_size(self, calculationParams : CalculationParams) -> int:
@@ -102,7 +102,7 @@ class MachineConsumer(Consumer_interface):
         self._make_machine_possible(calculationParams) 
         sim_size = calculationParams.get_simulation_size()
         start_time = maxi(self.start_time, calculationParams.begin)
-        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size))
+        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size_s))
         xpar = xpars[0]
         ypar = ypars[0]
         for i in range(self._get_minimizing_variables_count(calculationParams)):
@@ -118,7 +118,7 @@ class MachineConsumer(Consumer_interface):
         sim_size = calculationParams.get_simulation_size()
         toReturn = np.zeros((sim_size,), np.float64)
         start_time = maxi(self.start_time, calculationParams.begin)
-        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size))
+        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size_s))
         for i in range(len(variables)):
             if (variables[i] != 0):
                 for j in range(len(self.profile)):
@@ -128,7 +128,7 @@ class MachineConsumer(Consumer_interface):
         sim_size = calculationParams.get_simulation_size()
         toReturn = np.zeros((sim_size,), np.int64)
         start_time = maxi(self.start_time, calculationParams.begin)
-        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size))
+        start_step = int(round((start_time - calculationParams.begin) / calculationParams.step_size_s))
         for i in range(len(variables)):
             if (variables[i] != 0):
                 toReturn[start_step + i] = np.round(variables[i])

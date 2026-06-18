@@ -29,17 +29,17 @@ def get_ecs_results_to_transmit(first_valid_timestamp: int, sim_params : Calcula
 			for i, dec in enumerate(result_ecs.decisions):
 				if dec == 1:
 					index_start = i
-			time_start = result_ecs.first_valid_timestamp + index_start * sim_params.step_size
+			time_start = result_ecs.first_valid_timestamp + index_start * sim_params.step_size_s
 			# print(result_ecs.duration / sim_params.step_size)
-			time_end   = time_start + ceil(result_ecs.duration / sim_params.step_size) * sim_params.step_size 
+			time_end   = time_start + ceil(result_ecs.duration / sim_params.step_size_s) * sim_params.step_size_s 
 			current_time = first_valid_timestamp
 			for i in range(len(result.decisions)):
 				if (current_time < time_start):
-					current_time += sim_params.step_size
+					current_time += sim_params.step_size_s
 					continue
 				if (current_time >= time_end):
 					break
 				result.decisions[i] = 1
-				current_time += sim_params.step_size
+				current_time += sim_params.step_size_s
 			results.append(result)
 	return results

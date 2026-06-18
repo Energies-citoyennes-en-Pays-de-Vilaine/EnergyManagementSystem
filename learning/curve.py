@@ -8,12 +8,14 @@ class Curve():
 	origin_points    : np.ndarray
 	origin_timestamp : np.ndarray
 	timestamp        : int
+
 	def __init__(self, delta_T: int, points:np.ndarray, origin_points: List[np.ndarray], origin_timestamp: List[np.ndarray], timestamp : int) -> None:
 		self.delta_T = delta_T
 		self.points = np.array(points, dtype=np.float64)
 		self.origin_points = origin_points
 		self.origin_timestamp = origin_timestamp
 		self.timestamp = timestamp
+
 	def cut_last_points(self, count):
 		origin_points = []
 		origin_timestamps = []
@@ -22,6 +24,7 @@ class Curve():
 				origin_points.append(self.origin_points[i])
 				origin_timestamps.append(self.origin_timestamp[i])
 		return Curve(self.delta_T, np.array(self.points[:-count]), np.array(origin_points), np.array(origin_timestamps), self.timestamp)
+	
 	def plot_curve(self, fig : plt.figure, full=False):
 		if fig == None:
 			fig = plt

@@ -37,7 +37,7 @@ class Problem():
         model = pyo.ConcreteModel()
         round_start_timestamp = self.calculationParams.begin
         model.n_steps = pyo.Param(initialize = self.calculationParams.get_simulation_size(), domain = pyo.PositiveIntegers)
-        model.steps = pyo.RangeSet(round_start_timestamp, round_start_timestamp + (model.n_steps - 1) * self.calculationParams.step_size, self.calculationParams.step_size)
+        model.steps = pyo.RangeSet(round_start_timestamp, round_start_timestamp + (model.n_steps - 1) * self.calculationParams.step_size_s, self.calculationParams.step_size_s)
         model.equilibre = pyo.Param(model.steps, initialize = self.cohorte_balance, domain = pyo.Reals)
 
         model.n_users = pyo.Param(initialize = len(self.utilisateurs), domain = pyo.PositiveIntegers)
@@ -133,7 +133,7 @@ class Problem():
                             Line2D([0],[0], color="#C44536", lw=8, label="Import")])
         # plt.show()
         step_x_ticks = [i for i in range(0, self.calculationParams.simulation_size, 24)]
-        step_x_label = ["{:%a %d %Hh%M}".format(dt.datetime.fromtimestamp(timestamp = self.calculationParams.begin) + dt.timedelta(seconds=self.calculationParams.step_size) * i) for i in step_x_ticks]
+        step_x_label = ["{:%a %d %Hh%M}".format(dt.datetime.fromtimestamp(timestamp = self.calculationParams.begin) + dt.timedelta(seconds=self.calculationParams.step_size_s) * i) for i in step_x_ticks]
         plt.xticks(step_x_ticks, labels=step_x_label, rotation=45, ha="right", rotation_mode="anchor", size=7)
         plt.savefig("./data/temp/ACC_file.svg", format="svg")
 

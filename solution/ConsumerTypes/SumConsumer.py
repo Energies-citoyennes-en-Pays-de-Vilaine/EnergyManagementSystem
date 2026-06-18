@@ -74,8 +74,8 @@ class SumConsumer(Consumer_interface):
             if (min_sum < 0 or max_sum < 0):
                 print(f"constraint is wrong so dropping it because it expects a negative sum {sum_period}")
                 continue
-            if ((end - start) / calculationParams.step_size < min_sum):
-                min_sum = (end - start) / calculationParams.step_size
+            if ((end - start) / calculationParams.step_size_s < min_sum):
+                min_sum = (end - start) / calculationParams.step_size_s
             if (max_sum < min_sum):
                 max_sum = min_sum
             sum_periods.append(SumPeriod(start, end, min_sum, max_sum))

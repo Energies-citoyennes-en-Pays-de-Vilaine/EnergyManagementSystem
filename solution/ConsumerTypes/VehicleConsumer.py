@@ -4,7 +4,6 @@ from solution.Consumer_interface import Consumer_interface
 from solution.Calculation_Params import CalculationParams
 from utils.time.timestamp import synchronise
 import pyomo.environ as pyo
-from solution.Utils.utils import maxi, mini
 from math import ceil, floor
 from typing import TypedDict
 from dataclasses import dataclass
@@ -28,24 +27,24 @@ class VehicleConsumer(Consumer_interface):
 	initial_charge_pourc : int
 	end_charge_pourc : int
 	
-	def __init__(self, id, power_watt, capacity_watt_hour, initial_charge_pourc, end_charge_pourc, start_time, end_time, consumer_machine_type = -1):
+	def __init__(self, id, power_watt, capacity_watt_hour, initial_charge_pourc, end_charge_pourc, calculationParams: CalculationParams, end_time, consumer_machine_type = -1):
 		self.id = id
 		self.power_watt = power_watt
 		self.capacity_watt_hour = capacity_watt_hour
 		self.initial_charge_pourc = initial_charge_pourc
 		self.end_charge_pourc = end_charge_pourc
-		self.start_time = synchronise(start_time)
+		self.start_time = calculationParams.begin
 		self.end_time = synchronise(end_time) #vehicle must be charged up to end_charge_pourc before the end time
 		self.consumer_machine_type = consumer_machine_type
 		self.has_base_consumption = False
 		self.is_reocurring = False
 		self.consommation : Dict[int, float] = None
+		self.tp : _CalculatedTimeParameters = self._get_calculated_time_parameters(calculationParams)
 
 #region Maloen
 	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
-		tp = self._get_calculated_time_parameters(calculationParams)
-		last_time = max(tp["start_time"], tp["last_time_min_charge"])
-		consumerBlock.decision_set = pyo.RangeSet(tp["start_time"], last_time, calculationParams.step_size)
+		last_time = max(self.tp["start_time"], self.tp["last_time_min_charge"])
+		consumerBlock.decision_set = pyo.RangeSet(self.tp["start_time"], last_time, calculationParams.step_size_s)
 		consumerBlock.decisions = pyo.Var(consumerBlock.decision_set, domain = pyo.Binary)
 
 	def _create_consumer_constraint(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
@@ -56,18 +55,17 @@ class VehicleConsumer(Consumer_interface):
 	def _get_consumption_t(self, consumerBlock: pyo.Block, calculationParams: CalculationParams, step_timestamp: int) -> pyo.Var:
 		if self.consommation == None:
 			self._calcul_consommation(calculationParams)
-		tp = self._get_calculated_time_parameters(calculationParams)
 		to_return = 0
-		if tp["start_time"] <= step_timestamp <= tp["end_time"]:
+		if self.tp["start_time"] <= step_timestamp <= self.tp["end_time"]:
 			for lancement_timestamp in consumerBlock.decision_set:
-				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= tp["min_charge_time"] 
+				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["min_charge_time"] 
 								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
 		return to_return
 	
 	def _get_calculated_time_parameters(self, calculationParams: CalculationParams) -> _CalculatedTimeParameters:
-		step_size         		:int 	= calculationParams.step_size
-		start_time        		:int 	= maxi(self.start_time, calculationParams.begin)
-		end_time          		:int 	= mini(self.end_time, calculationParams.end)
+		step_size         		:int 	= calculationParams.step_size_s
+		start_time        		:int 	= max(self.start_time, calculationParams.begin)
+		end_time          		:int 	= min(self.end_time, calculationParams.end)
 		capacity_watt_seconds 	:int 	= 3600.0 * self.capacity_watt_hour
 		min_charge_proportion 	:float 	= max(0,(self.end_charge_pourc - self.initial_charge_pourc) / 100.0)
 		max_charge_proportion 	:float 	= (100.0 - self.initial_charge_pourc) / 100.0
@@ -77,7 +75,7 @@ class VehicleConsumer(Consumer_interface):
 		end_time_max_charge 	:int 	= start_time + max_charge_time
 		last_time_min_charge 	:int 	= end_time - min_charge_time
 		last_time_max_charge 	:int 	= end_time - max_charge_time
-		steps_count         	:int 	= floor((end_time - start_time - min_charge_time) / calculationParams.step_size)
+		steps_count         	:int 	= floor((end_time - start_time - min_charge_time) / calculationParams.step_size_s)
 		return {
 			"start_time" 			: start_time,
 			"end_time"				: end_time,
@@ -92,18 +90,18 @@ class VehicleConsumer(Consumer_interface):
 	
 	def _calcul_consommation(self, calculationParams: CalculationParams) -> None:
 		capacity_wanted = max(0, (self.end_charge_pourc - self.initial_charge_pourc)) * self.capacity_watt_hour / 100
-		capacity_per_step = self.power_watt * calculationParams.step_size / 3600
-		self.consommation = {calculationParams.step_size * i: self.power_watt for i in range(ceil(capacity_wanted / capacity_per_step))}
+		capacity_per_step = self.power_watt * calculationParams.step_size_s / 3600
+		self.consommation = {calculationParams.step_size_s * i: self.power_watt for i in range(ceil(capacity_wanted / capacity_per_step))}
 
 	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamp : int) -> np.ndarray:
-		toReturn = np.zeros((calculationParams.get_simulation_size(),), np.int64)
+		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
 		launch_step = synchronise(launch_timestamp)
 		toReturn[launch_step] = 1
 		return toReturn
 	
 	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
 		decision = (decision - calculationParams.begin) // 900
-		sim_size = calculationParams.get_simulation_size()
+		sim_size = calculationParams.simulation_size
 		toReturn = np.zeros((sim_size,), np.float64)
 		for k, v in self.consommation.items():
 			index = k//900 + decision
