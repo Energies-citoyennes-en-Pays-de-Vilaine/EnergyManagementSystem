@@ -37,44 +37,30 @@ def get_machines_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> Li
 
 @dataclass
 class ECSToScheduleType():
-	Id             	: int
-	zabbix_id      	: int
-	volume_L       	: str
-	power_W        	: int
-	start          	: int
-	end            	: int
-	utilisateur		: str
-	equipment_type	: int
+	Id             				: int
+	zabbix_id      				: int
+	volume_L       				: str
+	power_W        				: int
+	timestamp_dernier_lancement	: int 
+	utilisateur					: str
+	equipment_type				: int
 
-def get_ECS_to_schedule(credentials: Dict[str: str], timestamp: int, cohorte_id: str, ECS_not_to_schedule: Union[List[int], None] = None) -> List[ECSToScheduleType]:
-	query = (sql.SQL("""SELECT epm.id, ecs.mesures_puissance_elec_id ,ecs.volume_ballon, ecs.puissance_chauffe, hc.debut, hc.fin, epm.equipement_pilote_ou_mesure_type_id
+def get_ECS_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> List[ECSToScheduleType]:
+	query = (sql.SQL("""SELECT epm.id, ecs.mesures_puissance_elec_id ,ecs.volume_ballon, ecs.puissance_chauffe, epm.timestamp_derniere_mise_en_marche, usr.id, epm.equipement_pilote_ou_mesure_type_id
 						FROM {0} AS epm
-	    				INNER JOIN {1} AS ecs ON epm.id=ecs.equipement_pilote_ou_mesure_id 
-						INNER JOIN {2} AS hc ON ecs.id = hc.equipement_pilote_ballon_ecs_id
+	    				INNER JOIN {1} AS ecs ON epm.id = ecs.equipement_pilote_ou_mesure_id 
 				  		INNER JOIN {3} AS usr ON usr.id = epm.utilisateur
-						WHERE hc.actif=true and epm.equipement_pilote_ou_mesure_mode_id=%s
-				  		AND epm.timestamp_derniere_mise_en_marche + 12 * 3600 <= %s
+						WHERE hc.actif = true 
+				  		AND epm.equipement_pilote_ou_mesure_mode_id = %s				  
 				  		AND usr.cohorte = %s""").format(
 				sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
 				sql.Identifier(ELFE_database_names['ELFE_BallonECS']),
-				sql.Identifier(ELFE_database_names['ELFE_BallonECSHeuresCreuses']),
 				sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
 			), 
-			[MODE_PILOTE, timestamp, cohorte_id])
+			[MODE_PILOTE, cohorte_id])
 	result = fetch(credentials, query)
-	result_typed : List[ECSToScheduleType] = [ECSToScheduleType(r[0], r[1], r[2], r[3], r[4], r[5], r[6]) for r in result]
-	
-	#gets only the biggest period where it can be scheduled
-	biggest_period_ecs : Dict[int, ECSToScheduleType] = {}
-	for ecs in result_typed:
-		if ECS_not_to_schedule != None and ecs.Id in ECS_not_to_schedule:
-			continue
-		if ecs.Id not in biggest_period_ecs:
-			biggest_period_ecs[ecs.Id] = ecs
-		elif (ecs.end - ecs.start > biggest_period_ecs[ecs.Id].end - biggest_period_ecs[ecs.Id].start):
-			biggest_period_ecs[ecs.Id] = ecs
-	print("[debug info ECS]", biggest_period_ecs)
-	return biggest_period_ecs
+	result_typed : List[ECSToScheduleType] = [ECSToScheduleType(*r) for r in result]
+	return result_typed
 
 @dataclass
 class ElectricVehicleToScheduleType:

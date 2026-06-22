@@ -18,7 +18,7 @@ from utils.time.period import Period, get_merged_periods
 from utils.time.midnight import get_midnight_date
 from utils.time.timestamp import get_timestamp, get_round_timestamp
 from math import ceil
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from config.config import Config, get_config
 from operator import itemgetter
@@ -52,45 +52,41 @@ def get_machines(timestamp) -> List[MachineConsumer]:
 		to_return.append(machine_consumer)
 	return to_return
  
-def get_ECS(timestamp: int, calculation_params: CalculationParams) -> List[ECSConsumer]:
+def get_ECS(timestamp: int, calculation_params: CalculationParams) -> Dict[str: ECSConsumer]:
 	#ECS means "Eau Chaude Sanitaire" which is the hot water tank
-	midnight = get_midnight_date(timestamp)
-	midnight_timestamp = midnight.timestamp()
+	ECS_time_between_launches_h = 12 # 6 < ECStbl < 18
+	lancement_EMS = datetime.fromtimestamp(timestamp)
 	ECS_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result_ecs")
-	ecs_to_schedule = get_ECS_to_schedule(db_credentials["ELFE"],timestamp ,ECS_not_to_schedule)
-	
-	ecs_consumers = []
-	for ecs_id in ecs_to_schedule:
-		ecs : ECSToScheduleType = ecs_to_schedule[ecs_id]
-		last_consumption = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
-		duration_hour = last_consumption / ecs.power_W + 2 #add two hours to be safe, to be put in a config file
-		# calculation_params.step_size
-		duration_step = ceil(duration_hour * 4) #WARNING, quick and dirty, couples the code to 15min simulation step. To be reworked
-		ecs_curve = []
-		for i in range(duration_step):
-			ecs_curve.append(ecs.power_W)
-		possible_starts = [
-			midnight_timestamp + ecs.start - 24 * 3600,
-			midnight_timestamp + ecs.start,
-			midnight_timestamp + ecs.start + 24 * 3600,
-		]
-		possible_ends = [
-			midnight_timestamp + ecs.end - 24 * 3600,
-			midnight_timestamp + ecs.end,
-			midnight_timestamp + ecs.end + 24 * 3600
-		]
-		consumer : ECSConsumer
-		if (timestamp <= possible_starts[0] or timestamp > possible_starts[0] and timestamp < possible_ends[0]):
-			consumer = ECSConsumer(ecs.Id, ecs_curve, possible_starts[0], possible_ends[0], ecs.power_W, ecs.volume_L, ecs.equipment_type)
-		elif (timestamp <= possible_starts[1] or (timestamp > possible_starts[1] and timestamp < possible_ends[1])): 
-			consumer = ECSConsumer(ecs.Id, ecs_curve, possible_starts[1], possible_ends[1], ecs.power_W, ecs.volume_L, ecs.equipment_type)
-		else:
-			consumer = ECSConsumer(ecs.Id, ecs_curve, possible_starts[2], possible_ends[2], ecs.power_W, ecs.volume_L, ecs.equipment_type)
-		ecs_consumers.append(consumer)
+	ecs_to_schedule = get_ECS_to_schedule(db_credentials["ELFE"],timestamp)
+	ecs_consumers : Dict[str: ECSConsumer] = {}
+	for ecs in ecs_to_schedule:
+		last_consumption_Wh = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
+		
+		if ecs.Id not in ECS_not_to_schedule:
+			if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours=ECS_time_between_launches_h):
+				timestamp_lancement_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * ECS_time_between_launches_h
+				timestamp_fin_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * 24
+				timestamp_lancement_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 24
+				timestamp_fin_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 48
+
+			else:
+				timestamp_lancement_ecs_1 = timestamp
+				if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours = 24):
+					timestamp_fin_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * 24
+					timestamp_lancement_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 24
+					timestamp_fin_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 48
+				else:
+					timestamp_fin_ecs_1 = timestamp + 3600 * (24 - ECS_time_between_launches_h)
+					timestamp_lancement_ecs_2 = timestamp + 3600 * 24
+					timestamp_fin_ecs_2 = timestamp + 3600 * 48
+			
+			ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculation_params, ecs.equipment_type)
+		ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculation_params, ecs.equipment_type)
+
 	return (ecs_consumers)
 
 def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) -> Dict[str: VehicleConsumer]:
-	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin - calculationParams.step_size, "result")
+	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin - calculationParams.step_size_s, "result")
 	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, calculationParams.begin, vehicle_not_to_schedule)
 	vehicles : Dict[VehicleConsumer] = {}
 	for v in vehicle_to_schedule:
@@ -143,21 +139,21 @@ def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> L
 		sum_periods : List[SumPeriod] = []
 		for p in period_filtered:
 			expected_ratio : int = (100.0 - heater.pourcentage_eco_force) / 100.0
-			expected_sum : int =  round( expected_ratio * (count + (p.end - p .start) / calculationParams.step_size))
+			expected_sum : int =  round( expected_ratio * (count + (p.end - p .start) / calculationParams.step_size_s))
 			expected_sum_left : int = expected_sum - summ
-			steps_left : int = round((p.end - p .start) / calculationParams.step_size)
+			steps_left : int = round((p.end - p .start) / calculationParams.step_size_s)
 			if (expected_sum_left > steps_left):
 				print(f"something went wrong with heater {heater.equipement_pilote_ou_mesure_id} period({p}), reducing expected sum left")
 				print(f"ratio {expected_ratio} end {p.end} start {p.start} sum {expected_sum}, left {expected_sum_left}, steps {steps_left}")
 				expected_sum_left = steps_left
-			sliding_period_steps : int = round(config.heater_eco_sliding_period_s / calculationParams.step_size)
+			sliding_period_steps : int = round(config.heater_eco_sliding_period_s / calculationParams.step_size_s)
 			sliding_period_count : int = steps_left // sliding_period_steps
 			sliding_period_consumption_denied : int = ceil(sliding_period_steps * config.heater_eco_sliding_percentage / 100.0)
 			sliding_period_min : int = max(0, sliding_period_steps - sliding_period_consumption_denied)
 			sliding_period_max : int = sliding_period_steps
 			for i in range(sliding_period_count):
-				start_time : int = i * calculationParams.step_size
-				sum_period : SumPeriod = SumPeriod(p.start + start_time, p.start + start_time + sliding_period_steps * calculationParams.step_size, sliding_period_min, sliding_period_max)
+				start_time : int = i * calculationParams.step_size_s
+				sum_period : SumPeriod = SumPeriod(p.start + start_time, p.start + start_time + sliding_period_steps * calculationParams.step_size_s, sliding_period_min, sliding_period_max)
 				sum_periods.append(sum_period)
 			
 			sum_periods.append(SumPeriod(p.start, p.end, expected_sum_left, steps_left))
@@ -258,6 +254,10 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	panneaux_photovoltaiques = get_panneaux_photovoltaiques(cohorte_id)
 	for u, p in panneaux_photovoltaiques.items():
 		to_return[u].add_producer(p)
+
+	ballon_ecs = get_ECS(timestamp, calculation_params)
+	for u, b in ballon_ecs.items():
+		to_return[u].add_consumer(b)
 
 	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}
 	return list(to_return.values())

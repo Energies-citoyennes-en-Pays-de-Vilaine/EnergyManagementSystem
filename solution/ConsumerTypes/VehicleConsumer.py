@@ -100,11 +100,11 @@ class VehicleConsumer(Consumer_interface):
 		return toReturn
 	
 	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
-		decision = (decision - calculationParams.begin) // 900
+		decision = (decision - calculationParams.begin) // calculationParams.step_size_s
 		sim_size = calculationParams.simulation_size
 		toReturn = np.zeros((sim_size,), np.float64)
 		for k, v in self.consommation.items():
-			index = k//900 + decision
+			index = k//calculationParams.step_size_s + decision
 			if index >= sim_size:
 				break
 			toReturn[index] = v
