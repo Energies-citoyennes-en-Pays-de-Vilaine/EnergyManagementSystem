@@ -49,9 +49,8 @@ def get_ECS_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> List[EC
 	query = (sql.SQL("""SELECT epm.id, ecs.mesures_puissance_elec_id ,ecs.volume_ballon, ecs.puissance_chauffe, epm.timestamp_derniere_mise_en_marche, usr.id, epm.equipement_pilote_ou_mesure_type_id
 						FROM {0} AS epm
 	    				INNER JOIN {1} AS ecs ON epm.id = ecs.equipement_pilote_ou_mesure_id 
-				  		INNER JOIN {3} AS usr ON usr.id = epm.utilisateur
-						WHERE hc.actif = true 
-				  		AND epm.equipement_pilote_ou_mesure_mode_id = %s				  
+				  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur
+						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s				  
 				  		AND usr.cohorte = %s""").format(
 				sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
 				sql.Identifier(ELFE_database_names['ELFE_BallonECS']),
@@ -60,6 +59,7 @@ def get_ECS_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> List[EC
 			[MODE_PILOTE, cohorte_id])
 	result = fetch(credentials, query)
 	result_typed : List[ECSToScheduleType] = [ECSToScheduleType(*r) for r in result]
+	print("[debug info ballons ECS]", result_typed)
 	return result_typed
 
 @dataclass

@@ -22,7 +22,7 @@ class ECSConsumer(Consumer_interface):
 	power_W	  		: int
 	volume_litre	: int
 	
-	def __init__(self, id, last_consumption_Wh, start_time, end_time, power_W, volume_litre, calculation_params, consumer_machine_type=-1):
+	def __init__(self, id, last_consumption_Wh, start_time, end_time, power_W, volume_litre, calculationParams, consumer_machine_type=-1):
 		self.id = id
 		self.last_consumption_Wh = last_consumption_Wh
 		self.start_time = start_time
@@ -33,7 +33,7 @@ class ECSConsumer(Consumer_interface):
 		self.consumer_machine_type = consumer_machine_type
 		self.power_W = power_W
 		self.volume_litre = volume_litre
-		self.tp : _CalculatedTimeParameters = self._get_calculated_time_parameters(calculation_params)
+		self.tp : _CalculatedTimeParameters = self._get_calculated_time_parameters(calculationParams)
 
 	def __repr__(self):
 		to_return = "ECSConsumer("
@@ -58,12 +58,24 @@ class ECSConsumer(Consumer_interface):
 		consumerBlock.constraint_unicity = pyo.Constraint(rule = unicity_constraint)
 
 	def _calcul_consommation(self, calculationParams: CalculationParams) -> None:
-		self.consommation = {calculationParams.step_size_s * i: self.power_W for i in range(self.duration_step)}
+		self.consommation = {calculationParams.step_size_s * i: self.power_W for i in range(self.tp["steps_count"])}
+
+	def _get_consumption_t(self, consumerBlock: pyo.Block, calculationParams: CalculationParams, step_timestamp: int) -> pyo.Var:
+		if self.consommation == None:
+			self._calcul_consommation(calculationParams)
+		to_return = 0
+		if self.tp["start_time"] <= step_timestamp <= self.tp["end_time"]:
+			for lancement_timestamp in consumerBlock.decision_set:
+				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["last_time_start"] 
+								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
+		return to_return
 	
-	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamp : int) -> np.ndarray:
+	def _get_decisions(self, calculationParams: CalculationParams, launch_timestamp : int) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
 		launch_step = synchronise(launch_timestamp)
-		toReturn[launch_step: launch_step + self.tp["steps_count"]] = 1
+		end_step = min(launch_step + self.tp["steps_count"] + 8, calculationParams.simulation_size - 1)
+		self.total_duration = end_step - launch_step
+		toReturn[launch_step: end_step] = 1
 		return toReturn
 	
 	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
@@ -76,6 +88,9 @@ class ECSConsumer(Consumer_interface):
 				break
 			toReturn[index] = v
 		return toReturn
+	
+	def get_total_duration(self) -> int:
+		return self.total_duration
 	
 	def _get_calculated_time_parameters(self, calculationParams: CalculationParams) -> _CalculatedTimeParameters:
 		step_size_s		 		: int = calculationParams.step_size_s
