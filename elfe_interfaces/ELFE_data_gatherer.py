@@ -81,7 +81,8 @@ def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: st
 
 			ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)
 		ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)
-		print(f"ECS_{ecs.Id} 1:[{datetime.fromtimestamp(timestamp_lancement_ecs_1)} - {datetime.fromtimestamp(timestamp_fin_ecs_1)}], 2:[{datetime.fromtimestamp(timestamp_lancement_ecs_2)} - {datetime.fromtimestamp(timestamp_fin_ecs_2)}]")
+		# print(f"ECS_{ecs.Id} 1:[{datetime.fromtimestamp(timestamp_lancement_ecs_1)} - {datetime.fromtimestamp(timestamp_fin_ecs_1)}], 2:[{datetime.fromtimestamp(timestamp_lancement_ecs_2)} - {datetime.fromtimestamp(timestamp_fin_ecs_2)}]")
+		print(f"ECS_{ecs.Id} 1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}], 2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]")
 
 	return (ecs_consumers)
 

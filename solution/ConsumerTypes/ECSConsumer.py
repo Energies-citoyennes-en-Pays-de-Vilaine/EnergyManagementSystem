@@ -34,6 +34,8 @@ class ECSConsumer(Consumer_interface):
 		self.power_W = power_W
 		self.volume_litre = volume_litre
 		self.tp : _CalculatedTimeParameters = self._get_calculated_time_parameters(calculationParams)
+		self.consommation = None
+		print(f"ECS_Consummer start:{self.tp['start_time']} last_time:{self.tp['last_time_start']} end:{self.tp['end_time']}")
 
 	def __repr__(self):
 		to_return = "ECSConsumer("
@@ -59,14 +61,14 @@ class ECSConsumer(Consumer_interface):
 
 	def _calcul_consommation(self, calculationParams: CalculationParams) -> None:
 		self.consommation = {calculationParams.step_size_s * i: self.power_W for i in range(self.tp["steps_count"])}
-
+		
 	def _get_consumption_t(self, consumerBlock: pyo.Block, calculationParams: CalculationParams, step_timestamp: int) -> pyo.Var:
 		if self.consommation == None:
 			self._calcul_consommation(calculationParams)
 		to_return = 0
 		if self.tp["start_time"] <= step_timestamp <= self.tp["end_time"]:
 			for lancement_timestamp in consumerBlock.decision_set:
-				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["last_time_start"] 
+				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["steps_count"] 
 								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
 		return to_return
 	
@@ -96,8 +98,9 @@ class ECSConsumer(Consumer_interface):
 		step_size_s		 		: int = calculationParams.step_size_s
 		start_time				: int = max(self.start_time, calculationParams.begin)
 		end_time		  		: int = min(self.end_time, calculationParams.end)
-		previous_duration_step 	: int = np.ceil((self.last_consumption_Wh / self.power_W) * 3600 / step_size_s)
-		total_duration			: int = int(3600 * (END_TEMP - BASE_TEMP) * self.volume_litre * WATER_CTH_WH / self.power_W)
+		previous_duration_step 	: int = int(np.ceil((self.last_consumption_Wh / self.power_W) * 3600 / step_size_s))
+		total_duration			: int = int(np.ceil((3600 * (END_TEMP - BASE_TEMP) * self.volume_litre * WATER_CTH_WH / self.power_W) / step_size_s))
+		print(f"{previous_duration_step=} {total_duration=}")
 		steps_count		 		: int = max(previous_duration_step, total_duration) 
 		heat_time				: int = steps_count * step_size_s
 		last_time_start		 	: int = end_time - heat_time
