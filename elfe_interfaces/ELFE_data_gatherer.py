@@ -52,14 +52,17 @@ def get_machines(timestamp) -> List[MachineConsumer]:
 		to_return.append(machine_consumer)
 	return to_return
  
-def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: str) -> Dict[str: ECSConsumer]:
+def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: str) -> List[Tuple[str, ECSConsumer]]:
 	#ECS means "Eau Chaude Sanitaire" which is the hot water tank
 	ECS_time_between_launches_h = 12 # 6 < ECStbl < 18
 	lancement_EMS = datetime.fromtimestamp(timestamp)
 	ECS_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result_ecs")
 	ecs_to_schedule = get_ECS_to_schedule(db_credentials["ELFE"], cohorte_id)
-	ecs_consumers : Dict[str: ECSConsumer] = {}
+	# print(ECS_not_to_schedule)
+	ECS_not_to_schedule = []
+	ecs_consumers : List[Tuple[str, ECSConsumer]] = []
 	for ecs in ecs_to_schedule:
+		print(f"\nECS_{ecs.Id}", end=" ")
 		last_consumption_Wh = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
 		
 		timestamp_lancement_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 24
@@ -79,20 +82,19 @@ def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: st
 					timestamp_lancement_ecs_2 = timestamp + 3600 * 24
 					timestamp_fin_ecs_2 = timestamp + 3600 * 48	
 
-			ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)
-		ecs_consumers[ecs.utilisateur] = ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)
+			print(f"1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}]", end=" ")
+			ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
+		print(f"2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]", end=" ")
+		ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
 		# print(f"ECS_{ecs.Id} 1:[{datetime.fromtimestamp(timestamp_lancement_ecs_1)} - {datetime.fromtimestamp(timestamp_fin_ecs_1)}], 2:[{datetime.fromtimestamp(timestamp_lancement_ecs_2)} - {datetime.fromtimestamp(timestamp_fin_ecs_2)}]")
-		print(f"ECS_{ecs.Id} 1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}], 2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]")
-
 	return (ecs_consumers)
 
-def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) -> Dict[str: VehicleConsumer]:
+def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) -> List[Tuple[str, VehicleConsumer]]:
 	vehicle_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], calculationParams.begin - calculationParams.step_size_s, "result")
 	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, calculationParams.begin, vehicle_not_to_schedule)
-	vehicles : Dict[VehicleConsumer] = {}
+	vehicles : List[Tuple[str, VehicleConsumer]] = []
 	for v in vehicle_to_schedule:
-		vehicle_consumer : VehicleConsumer = VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams.begin, v.end_timestamp, v.equipement_type)
-		vehicles[v.utilisateur] = vehicle_consumer
+		vehicles.append((v.utilisateur, VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams.begin, v.end_timestamp, v.equipement_type)))
 	return vehicles
 
 def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> List[SumConsumer]:
@@ -236,12 +238,11 @@ def get_heater_consumer(timestamp : int, calculationParams: CalculationParams) -
 		heater_consumers.append(heater_consumer)
 	return heater_consumers
 
-def get_panneaux_photovoltaiques(cohorte_id: str) -> Dict[str: SolarProducer]:
+def get_panneaux_photovoltaiques(cohorte_id: str) -> List[Tuple[str, SolarProducer]]:
 	panneaux = get_elfe_solar_pv(db_credentials["ELFE"], cohorte_id)
-	to_return: Dict[str, SolarProducer] = {}
+	to_return: List[Tuple[str, SolarProducer]] = []
 	for p in panneaux:
-		current = SolarProducer(id=p.Id, puissance_crete_W=p.puissance_crete_W, orientation=p.orientation)
-		to_return[p.utilisateur] = current
+		to_return.append((p.utilisateur, SolarProducer(id=p.Id, puissance_crete_W=p.puissance_crete_W, orientation=p.orientation)))
 	return to_return
 
 def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
@@ -249,15 +250,15 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	to_return : Dict[str, Utilisateur] = {u.Id: Utilisateur(u.Id) for u in utilisateurs}
 	
 	vehicules_electriques = get_electric_vehicle(calculationsParams, cohorte_id)
-	for u, v in vehicules_electriques.items():
+	for u, v in vehicules_electriques:
 		to_return[u].add_consumer(v)
 	
 	panneaux_photovoltaiques = get_panneaux_photovoltaiques(cohorte_id)
-	for u, p in panneaux_photovoltaiques.items():
+	for u, p in panneaux_photovoltaiques:
 		to_return[u].add_producer(p)
 
 	ballon_ecs = get_ECS(timestamp, calculationsParams, cohorte_id)
-	for u, b in ballon_ecs.items():
+	for u, b in ballon_ecs:
 		to_return[u].add_consumer(b)
 
 	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}

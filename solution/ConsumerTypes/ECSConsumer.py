@@ -100,7 +100,6 @@ class ECSConsumer(Consumer_interface):
 		end_time		  		: int = min(self.end_time, calculationParams.end)
 		previous_duration_step 	: int = int(np.ceil((self.last_consumption_Wh / self.power_W) * 3600 / step_size_s))
 		total_duration			: int = int(np.ceil((3600 * (END_TEMP - BASE_TEMP) * self.volume_litre * WATER_CTH_WH / self.power_W) / step_size_s))
-		print(f"{previous_duration_step=} {total_duration=}")
 		steps_count		 		: int = max(previous_duration_step, total_duration) 
 		heat_time				: int = steps_count * step_size_s
 		last_time_start		 	: int = end_time - heat_time
