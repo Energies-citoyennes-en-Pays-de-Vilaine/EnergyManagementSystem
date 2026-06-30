@@ -94,7 +94,7 @@ def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) 
 	vehicle_to_schedule = get_electric_vehicle_to_schedule(db_credentials["ELFE"], cohorte_id, calculationParams.begin, vehicle_not_to_schedule)
 	vehicles : List[Tuple[str, VehicleConsumer]] = []
 	for v in vehicle_to_schedule:
-		vehicles.append((v.utilisateur, VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams.begin, v.end_timestamp, v.equipement_type)))
+		vehicles.append((v.utilisateur, VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams, v.end_timestamp, v.equipement_type)))
 	return vehicles
 
 def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> List[SumConsumer]:
@@ -277,10 +277,12 @@ def get_cohorte_balance(timestamp: int) -> List[Tuple[int, float]]:
 def get_production_solaire(timestamp: int) -> Dict[int, float]:
 	config = get_config()
 	expected_solar_power = fetch(db_credentials["EMS"], ("SELECT * FROM normal_solar_prevision WHERE data_timestamp >= %s ;", [timestamp]))
-	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0))
+	expected_solar_power = sorted(expected_solar_power, key=itemgetter(0)) #maybe useless now
 	normal_solar_prediction = {timestamp + i * config.delta_time_simulation_s: 0 for i in range(config.step_count)}
-	for solar_power_entry in expected_solar_power[:get_config().step_count]:
-		normal_solar_prediction.update({solar_power_entry[0]:solar_power_entry[1]})
+	timestamps = normal_solar_prediction.keys()
+	for solar_power_entry in expected_solar_power:
+		if solar_power_entry[0] in timestamps:
+			normal_solar_prediction.update({solar_power_entry[0]:solar_power_entry[1]})
 	return normal_solar_prediction
 
 def get_calculation_params(simulation_datas = None, timestamp = None) -> CalculationParams:
