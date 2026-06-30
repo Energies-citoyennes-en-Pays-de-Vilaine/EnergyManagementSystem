@@ -69,10 +69,12 @@ if __name__ == "__main__":
 	sim_params: CalculationParams = get_calculation_params(simulation_datas=cohorte_balance, timestamp=timestamp)
 	utilisateurs: List[Utilisateur] = []
 
-	try:
-		utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
-	except Exception as e:
-		print(e, "tb=", e.__traceback__.tb_frame)
+	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
+
+	# try:
+	# 	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
+	# except Exception as e:
+	# 	print(e, "tb=", e.__traceback__.tb_frame)
 
 	if (conf.log_problem_settings_active):
 		log_run_conditions_to_file(f"{conf.log_problem_settings_path}/{timestamp}_{round_start_timestamp}.py", timestamp, round_start_timestamp, sim_params, utilisateurs)

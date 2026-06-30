@@ -34,7 +34,7 @@ class Utilisateur:
         return self.production
     
     def calcul_production(self, prevision: Dict[int, float]) -> Dict[int, float]:
-        productions = [p.get_production(prevision) for p in self.producers]
+        productions = [{k: 0 for k in prevision.keys()}] + [p.get_production(prevision) for p in self.producers]
         to_return = {key: sum(p[key] for p in productions) for key in productions[0].keys()}
         self.production = to_return
 
