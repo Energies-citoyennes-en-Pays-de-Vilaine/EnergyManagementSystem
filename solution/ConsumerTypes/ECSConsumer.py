@@ -68,7 +68,7 @@ class ECSConsumer(Consumer_interface):
 		to_return = 0
 		if self.tp["start_time"] <= step_timestamp <= self.tp["end_time"]:
 			for lancement_timestamp in consumerBlock.decision_set:
-				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["steps_count"] 
+				to_return += (0 if step_timestamp - lancement_timestamp < 0 or step_timestamp - lancement_timestamp >= self.tp["steps_count"] * calculationParams.step_size_s
 								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
 		return to_return
 	
