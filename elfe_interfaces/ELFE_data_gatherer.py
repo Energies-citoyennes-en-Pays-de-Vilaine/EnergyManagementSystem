@@ -54,36 +54,30 @@ def get_machines(timestamp) -> List[MachineConsumer]:
  
 def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: str) -> List[Tuple[str, ECSConsumer]]:
 	#ECS means "Eau Chaude Sanitaire" which is the hot water tank
-	ECS_time_between_launches_h = 12 # 6 < ECStbl < 18
+	ECS_min_time_between_launches_h = 12 # 6 < ECSmtbl < 18
+	ECS_max_time_between_launches_h = 24 
 	lancement_EMS = datetime.fromtimestamp(timestamp)
-	ECS_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result_ecs")
+	# ECS_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result_ecs") #changement paradigme
 	ecs_to_schedule = get_ECS_to_schedule(db_credentials["ELFE"], cohorte_id)
-	# print(ECS_not_to_schedule)
-	ECS_not_to_schedule = []
 	ecs_consumers : List[Tuple[str, ECSConsumer]] = []
 	for ecs in ecs_to_schedule:
 		print(f"\nECS_{ecs.Id}", end=" ")
 		last_consumption_Wh = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
-		
-		timestamp_lancement_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 24
-		timestamp_fin_ecs_2 = ecs.timestamp_dernier_lancement + 3600 * 48
-		if ecs.Id not in ECS_not_to_schedule:
-			if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours=ECS_time_between_launches_h):
-				timestamp_lancement_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * ECS_time_between_launches_h
-				timestamp_fin_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * 24
-				
-			else:
-				timestamp_lancement_ecs_1 = timestamp
-				if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours = 24):
-					timestamp_fin_ecs_1 = ecs.timestamp_dernier_lancement + 3600 * 24
+		tl = ecs.timestamp_dernier_lancement
+		if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours = 24):
+			timestamp_lancement_ecs_1 = tl + 3600 * ECS_min_time_between_launches_h
+			timestamp_fin_ecs_1 = 		tl + 3600 * ECS_max_time_between_launches_h
+			timestamp_lancement_ecs_2 = tl + 3600 * 24
+			timestamp_fin_ecs_2 = 		tl + 3600 * 48
 
-				else:
-					timestamp_fin_ecs_1 = timestamp + 3600 * (24 - ECS_time_between_launches_h)
-					timestamp_lancement_ecs_2 = timestamp + 3600 * 24
-					timestamp_fin_ecs_2 = timestamp + 3600 * 48	
+		else: 																										#pas de lancement depuis plus de 24h
+			timestamp_lancement_ecs_1 = timestamp
+			timestamp_fin_ecs_1 = 		timestamp + 3600 * (ECS_max_time_between_launches_h - ECS_min_time_between_launches_h)
+			timestamp_lancement_ecs_2 = timestamp + 3600 * 24
+			timestamp_fin_ecs_2 = 		timestamp + 3600 * 48	
 
-			print(f"1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}]", end=" ")
-			ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
+		print(f"1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}]", end=" ")
+		ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
 		print(f"2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]", end=" ")
 		ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
 		# print(f"ECS_{ecs.Id} 1:[{datetime.fromtimestamp(timestamp_lancement_ecs_1)} - {datetime.fromtimestamp(timestamp_fin_ecs_1)}], 2:[{datetime.fromtimestamp(timestamp_lancement_ecs_2)} - {datetime.fromtimestamp(timestamp_fin_ecs_2)}]")

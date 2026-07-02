@@ -118,5 +118,5 @@ class Utilisateur:
         step_x_ticks = [i for i in range(0, calculationParams.simulation_size, 24)]
         step_x_label = ["{:%a %d %Hh%M}".format(dt.datetime.fromtimestamp(timestamp = calculationParams.begin) + dt.timedelta(seconds=calculationParams.step_size_s) * i) for i in step_x_ticks]
         plt_ax.set_xticks(step_x_ticks, labels=step_x_label, rotation=45, ha="right", rotation_mode="anchor", size=7)
-        plt_ax.set_ylabel("Puissance (W)")
+        plt_ax.set_ylabel(f"{self.id}")
         plt_ax.label_outer()

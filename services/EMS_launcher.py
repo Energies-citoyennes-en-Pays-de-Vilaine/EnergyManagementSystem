@@ -109,7 +109,7 @@ if __name__ == "__main__":
 		execute_queries(db_credentials["EMS"], queries_ECS)
 		results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
 		queries = [result.get_append_in_table_str("result") for result in results]
-		# execute_queries(db_credentials["EMS"], queries)
+		execute_queries(db_credentials["EMS"], queries)
 		# if ("EMS_SORTIE" in db_credentials):
 		# 	execute_queries(db_credentials["EMS_SORTIE"], queries)
 		

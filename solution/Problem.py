@@ -142,7 +142,7 @@ class Problem():
         x = max(2, int(np.ceil(np.sqrt(n_users))))
         y = max(2, int(np.floor(np.sqrt(n_users))))
         fig = plt.figure()
-        grid = fig.add_gridspec(y, x, hspace = 0, wspace = 0)
+        grid = fig.add_gridspec(y, x)#, hspace = 0, wspace = 0)
         axs = grid.subplots(sharex=True, sharey=True)
         ACC_production = np.array(list(self.cohorte_balance.values()))# // 1000#TODO remove (for visibility purposes)
         for i, utilisateur in enumerate(self.utilisateurs):
