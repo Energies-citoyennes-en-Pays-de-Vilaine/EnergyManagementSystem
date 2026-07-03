@@ -110,8 +110,8 @@ if __name__ == "__main__":
 		results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
 		queries = [result.get_append_in_table_str("result") for result in results]
 		execute_queries(db_credentials["EMS"], queries)
-		# if ("EMS_SORTIE" in db_credentials):
-		# 	execute_queries(db_credentials["EMS_SORTIE"], queries)
+		if ("EMS_SORTIE" in db_credentials):
+			execute_queries(db_credentials["EMS_SORTIE"], queries)
 		
 		write_energy_weather(problem.get_consumption(), cohorte_balance)
 		problem.show_consumptions()
