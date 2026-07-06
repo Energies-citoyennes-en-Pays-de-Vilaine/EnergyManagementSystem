@@ -13,7 +13,7 @@ class Config():
 
 	def __init__(self, delta_time_simulation_s, day_count_d, max_time_to_solve_s, heater_eco_sliding_percentage, heater_eco_sliding_period_s, heater_forced_eco_active, log_problem_settings_active, log_problem_settings_path):
 		self.delta_time_simulation_s 		= delta_time_simulation_s
-		self.step_count 					= day_count_d * (24 * 60 * 60) // self.delta_time_simulation_s
+		self.step_count 					= day_count_d * (24 * 3600) // self.delta_time_simulation_s
 		self.max_time_to_solve_s 			= max_time_to_solve_s
 		self.heater_eco_sliding_percentage	= heater_eco_sliding_percentage
 		self.heater_eco_sliding_period_s	= heater_eco_sliding_period_s

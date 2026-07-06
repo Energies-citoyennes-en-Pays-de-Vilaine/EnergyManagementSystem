@@ -60,8 +60,10 @@ def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: st
 	# ECS_not_to_schedule = get_equipment_started_last_round(db_credentials["EMS"], timestamp, "result_ecs") #changement paradigme
 	ecs_to_schedule = get_ECS_to_schedule(db_credentials["ELFE"], cohorte_id)
 	ecs_consumers : List[Tuple[str, ECSConsumer]] = []
+	# print(f"now={datetime.now().timestamp()}")
+	# print(f"{timestamp=}")
 	for ecs in ecs_to_schedule:
-		print(f"\nECS_{ecs.Id}", end=" ")
+		# print(f"\nECS_{ecs.Id}", end=" ")
 		last_consumption_Wh = get_last_consumption(db_credentials["EMS"], ecs.zabbix_id) 
 		tl = ecs.timestamp_dernier_lancement
 		if (lancement_EMS - datetime.fromtimestamp(ecs.timestamp_dernier_lancement)) < timedelta(hours = 24):
@@ -76,9 +78,9 @@ def get_ECS(timestamp: int, calculationParams: CalculationParams, cohorte_id: st
 			timestamp_lancement_ecs_2 = timestamp + 3600 * 24
 			timestamp_fin_ecs_2 = 		timestamp + 3600 * 48	
 
-		print(f"1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}]", end=" ")
+		# print(f"1:[{timestamp_lancement_ecs_1} - {timestamp_fin_ecs_1}]", end=" ")
 		ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_1, timestamp_fin_ecs_1, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
-		print(f"2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]", end=" ")
+		# print(f"2:[{timestamp_lancement_ecs_2} - {timestamp_fin_ecs_2}]", end=" ")
 		ecs_consumers.append((ecs.utilisateur, ECSConsumer(ecs.Id, last_consumption_Wh, timestamp_lancement_ecs_2, timestamp_fin_ecs_2, ecs.power_W, ecs.volume_L, calculationParams, ecs.equipment_type)))
 		# print(f"ECS_{ecs.Id} 1:[{datetime.fromtimestamp(timestamp_lancement_ecs_1)} - {datetime.fromtimestamp(timestamp_fin_ecs_1)}], 2:[{datetime.fromtimestamp(timestamp_lancement_ecs_2)} - {datetime.fromtimestamp(timestamp_fin_ecs_2)}]")
 	return (ecs_consumers)

@@ -115,7 +115,6 @@ class Problem():
         vals[:, 1] = np.linspace(203/256, 239/256, n_users)
         vals[:, 2] = np.linspace(27/256, 188/256, n_users)
         yellows = ListedColormap(vals)
-
         
         data = np.zeros((self.calculationParams.simulation_size,), np.float64)
         x_data = np.arange(self.calculationParams.simulation_size)

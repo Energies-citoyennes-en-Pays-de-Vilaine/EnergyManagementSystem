@@ -98,6 +98,10 @@ class Utilisateur:
         vals[:, 2] = np.linspace(27/256, 188/256, machine_number)
         yellows = ListedColormap(vals)
 
+        # print(f"{self.id}\n{[int(pyo.value(user_block.E_ACI[v])) for v in user_block.E_ACI]}"+
+        #       f"\n{[int(pyo.value(user_block.E_ACC[v])) for v in user_block.E_ACC]}"+
+        #       f"\n{[int(pyo.value(user_block.E_IMP[v])) for v in user_block.E_IMP]}")
+
         data = []
         production_colors = [["#96B1D6","#173C74"][self.is_step_HPHC(s)] for s in calculationParams.get_time_array()]
         blues = ListedColormap(["#96B1D6","#173C74"])

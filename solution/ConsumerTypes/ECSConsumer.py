@@ -5,6 +5,7 @@ import numpy as np
 from typing import *
 from solution.Consumer_interface import Consumer_interface
 from solution.Calculation_Params import CalculationParams
+from datetime import datetime
 
 WATER_CTH_J  = 4180#J/K/kg
 WATER_CTH_WH = WATER_CTH_J / 3600 #Wh/K/kg
@@ -35,7 +36,7 @@ class ECSConsumer(Consumer_interface):
 		self.volume_litre = volume_litre
 		self.tp : _CalculatedTimeParameters = self._get_calculated_time_parameters(calculationParams)
 		self.consommation = None
-		print(f"ECS_Consummer start:{self.tp['start_time']} last_time:{self.tp['last_time_start']} end:{self.tp['end_time']}")
+		# print(f"ECS_Consummer start:{self.tp['start_time']}({datetime.fromtimestamp(self.tp['start_time'])}) last_time:{self.tp['last_time_start']}({datetime.fromtimestamp(self.tp['last_time_start'])}) end:{self.tp['end_time']}({datetime.fromtimestamp(self.tp['end_time'])})")
 
 	def __repr__(self):
 		to_return = "ECSConsumer("
