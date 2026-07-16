@@ -11,4 +11,5 @@ class EMSRunInfo():
 	conso_min_hour           : int
 	conso_max_hour_timestamp : int
 	conso_max_hour           : int
+	cohorte					 : str
     
