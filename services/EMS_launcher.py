@@ -23,35 +23,19 @@ conf : Config = get_config()
 ONE_HOUR_SEC = 3600
 # cohorte_id = "ACI_1"
 
-def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[Tuple[int, float]]) -> None:
+def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[Tuple[int, float]], run_time_ms: int) -> None:
 	if ("EMS_SORTIE" in db_credentials):
 		queries = []
 		# print("problem_consumption\n", problem_consumption)
 		meteo_energie = problem_consumption + np.array(cohorte_balance)[:,1]
-		# print("meteo_energie\n", meteo_energie)
 		times = sim_params.get_time_array()
-		# min_conso_timestamp = None
-		# max_conso_timestamp = None
-		# min_conso = None
-		# max_conso = None
+		min_conso, max_conso = np.min(meteo_energie), np.max(meteo_energie)
+		min_conso_timestamp, max_conso_timestamp = times[np.where(meteo_energie == min_conso)[0][0]], times[np.where(meteo_energie == max_conso)[0][0]]
+
 		for i in range(len(times)):
 			queries.append(EMSEnergyWeather(times[i], int(meteo_energie[i]), cohorte_id).get_create_or_update_in_table_str("p_c_with_flexible_consumption"))
-		# 	if (datetime.fromtimestamp(times[i], timezone.utc).minute == 0):
-		# 		j = 0
-		# 		current_conso = 0
-		# 		while (i + j < len(times) and times[i + j] - times[i] < ONE_HOUR_SEC):
-		# 			current_conso += consumption[i + j]
-		# 			j = j + 1
-		# 		if (j != 0):
-		# 			current_conso = int(current_conso / j)
-		# 			if (min_conso == None or min_conso > current_conso):
-		# 				min_conso = current_conso
-		# 				min_conso_timestamp = times[i]
-		# 			if (max_conso == None or max_conso < current_conso):
-		# 				max_conso = current_conso
-		# 				max_conso_timestamp = times[i]
 
-		# queries.append(EMSRunInfo(round_start_timestamp, run_time_ms, len(utilisateurs), min_conso_timestamp, min_conso, max_conso_timestamp, max_conso).get_create_or_update_in_table_str("ems_run_info"))
+		queries.append(EMSRunInfo(round_start_timestamp, run_time_ms, len(utilisateurs), min_conso_timestamp, float(min_conso), max_conso_timestamp, float(max_conso), cohorte_id).get_create_or_update_in_table_str("ems_run_info"))
 		execute_queries(db_credentials["EMS_SORTIE"], queries)
 
 if __name__ == "__main__":
@@ -69,12 +53,12 @@ if __name__ == "__main__":
 	sim_params: CalculationParams = get_calculation_params(simulation_datas=cohorte_balance, timestamp=timestamp)
 	utilisateurs: List[Utilisateur] = []
 
-	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
+	# utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
 
-	# try:
-	# 	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
-	# except Exception as e:
-	# 	print(e, "tb=", e.__traceback__.tb_frame)
+	try:
+		utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
+	except Exception as e:
+		print(e, "tb=", e.__traceback__.tb_frame)
 
 	if (conf.log_problem_settings_active):
 		log_run_conditions_to_file(f"{conf.log_problem_settings_path}/{timestamp}_{round_start_timestamp}.py", timestamp, round_start_timestamp, sim_params, utilisateurs)
@@ -86,7 +70,10 @@ if __name__ == "__main__":
 		try:
 			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance_dict)
 			problem.create_pyo_model()
+			solve_start_time = time()
 			res = problem.solve(time_limit=conf.max_time_to_solve_s)
+			solve_end_time = time()
+			run_time_ms = int(1000 * (solve_end_time - solve_start_time))
 		except Exception as e:
 			print("Erreur EMS launcher")
 			traceback.print_exc()
@@ -113,6 +100,6 @@ if __name__ == "__main__":
 		if ("EMS_SORTIE" in db_credentials):
 			execute_queries(db_credentials["EMS_SORTIE"], queries)
 		
-		write_energy_weather(problem.get_consumption(), cohorte_balance)
+		write_energy_weather(problem.get_consumption(), cohorte_balance, run_time_ms)
 		problem.show_consumptions()
 		problem.show_user_consumptions()
