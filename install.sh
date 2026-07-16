@@ -9,8 +9,8 @@ HAS_TO_INSTALL_POSTGRES=1
 HAS_TO_DROP_DATABASE=0
 HAS_TO_CREATE_DATABASE=1
 HAS_TO_CREATE_OUT_DATABASE=1
-HAS_TO_GRANT_PERMISSIONS=1
 HAS_TO_INSTALL_MILP=1
+HAS_TO_GRANT_PERMISSIONS=1
 HAS_TO_CREATE_SERVICES=1
 HAS_TO_INSTALL_PREDICTION_HISTORIZER=0
 
@@ -55,7 +55,7 @@ echo "installing the environnement"
 if [ "$HAS_TO_INSTALL_ANACONDA" -ne 0 ]
 	then
 	echo "installing the necessary packets for anaconda"
-	# apt-get install -y libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
+	apt-get install -y libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
 	echo "downloading anaconda installation script in /tmp"
 	wget "https://repo.anaconda.com/archive/Anaconda3-2025.12-2-Linux-x86_64.sh" -O /tmp/anaconda_installer.sh
 	chmod +x /tmp/anaconda_installer.sh
