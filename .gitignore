@@ -6,3 +6,4 @@ bench*
 learning/zabbix_credentials.py
 *_credentials*
 install.log
+.vscode/*
