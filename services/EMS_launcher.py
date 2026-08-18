@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
 	if len(utilisateurs) == 0:
 		if ("EMS_SORTIE" in db_credentials):
-			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance)
+			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance, 0)
 	else:
 		try:
 			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance_dict)
