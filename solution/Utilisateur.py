@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from utils.colored_line import colored_line
+from config.poids import get_poids
 import datetime as dt
 
 class Utilisateur:
@@ -16,8 +17,9 @@ class Utilisateur:
     production  : Dict[int, float]
     # horaireHC   : CalendrierHPHC
 
-    def __init__(self, id) -> None:
+    def __init__(self, id, cohorte_id) -> None:
         self.id = id
+        self.cohorte_id = cohorte_id
         self.consumers = []
         self.producers = []
         self.production = {}
@@ -60,10 +62,10 @@ class Utilisateur:
         user_block.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
     def get_sum_energy(self, user_block: pyo.Block, steps):
-        PRIX = {"ACI": 0.01, "ACCHC": 1, "ACCHP": 5, "IMPHC": 10, "IMPHP": 50}
-        return sum( user_block.E_ACI[step] * PRIX["ACI"] +
-                    user_block.E_ACC[step] * PRIX["ACC" + ["HC", "HP"][self.is_step_HPHC(step)]] +
-                    user_block.E_IMP[step] * PRIX["IMP" + ["HC", "HP"][self.is_step_HPHC(step)]]    for step in steps)
+        poids = get_poids(self.cohorte_id)
+        return sum( user_block.E_ACI[step] * poids["ACI"] +
+                    user_block.E_ACC[step] * poids["ACC" + ["HC", "HP"][self.is_step_HPHC(step)]] +
+                    user_block.E_IMP[step] * poids["IMP" + ["HC", "HP"][self.is_step_HPHC(step)]]    for step in steps)
 
     def is_step_HPHC(self, step):
         return 0 if (step//900) % 96 <=8*4 or (step//900) % 96 >= 20*4 else 1 #TODO selection en fonction du calendrierHPHC interne
