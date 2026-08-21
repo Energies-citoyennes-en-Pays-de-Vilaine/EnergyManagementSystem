@@ -2,6 +2,7 @@ from typing import List, Dict
 from solution.Consumer_interface import Consumer_interface
 from solution.Production_interface import Producer_interface
 from solution.Calculation_Params import CalculationParams
+from solution.Calendrier import Calendrier
 import pyomo.environ as pyo
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +16,7 @@ class Utilisateur:
     consumers   : List[Consumer_interface]
     producers   : List[Producer_interface]
     production  : Dict[int, float]
-    # horaireHC   : CalendrierHPHC
+    calendrierHPHC   : Calendrier
 
     def __init__(self, id, cohorte_id) -> None:
         self.id = id
@@ -40,6 +41,9 @@ class Utilisateur:
         to_return = {key: sum(p[key] for p in productions) for key in productions[0].keys()}
         self.production = to_return
 
+    def set_calendrier(self, calendrier: Calendrier):
+        self.calendrierHPHC = calendrier
+
     def create_block_submodel(self, user_block: pyo.Block, steps: pyo.RangeSet, calculationParams: CalculationParams, solar_prevision: Dict[int, float]) -> None:        
         user_block.production = pyo.Param(steps, initialize = self.get_production(solar_prevision), domain = pyo.Reals) #Production ACI
 
@@ -61,14 +65,14 @@ class Utilisateur:
             return (block.E_ACI[t] + block.E_ACC[t] + block.E_IMP[t]) >= sum(consumer.get_consumption_t(block.consumers[i], calculationParams, t) for i, consumer in enumerate(self.consumers))
         user_block.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
+    def is_step_HPHC(self, step):
+        return self.calendrierHPHC.is_heure_creuse(dt.datetime.fromtimestamp(step))
+    
     def get_sum_energy(self, user_block: pyo.Block, steps):
         poids = get_poids(self.cohorte_id)
         return sum( user_block.E_ACI[step] * poids["ACI"] +
-                    user_block.E_ACC[step] * poids["ACC" + ["HC", "HP"][self.is_step_HPHC(step)]] +
-                    user_block.E_IMP[step] * poids["IMP" + ["HC", "HP"][self.is_step_HPHC(step)]]    for step in steps)
-
-    def is_step_HPHC(self, step):
-        return 0 if (step//900) % 96 <=8*4 or (step//900) % 96 >= 20*4 else 1 #TODO selection en fonction du calendrierHPHC interne
+                    user_block.E_ACC[step] * poids["ACC" + ["HP", "HC"][self.is_step_HPHC(step)]] +
+                    user_block.E_IMP[step] * poids["IMP" + ["HP", "HC"][self.is_step_HPHC(step)]]    for step in steps)
 
     def get_consumption(self, user_block: pyo.Block, calculationParams: CalculationParams) -> np.ndarray:
         consumption = np.zeros((calculationParams.simulation_size,), np.float64)
@@ -91,6 +95,7 @@ class Utilisateur:
     def is_consumer_empty(self) -> bool:
         return len(self.consumers) == 0
     
+    
     def show_user_consumptions(self, plt_ax, user_block: pyo.Block, ACC_production: np.ndarray, calculationParams: CalculationParams) -> None:
         # print("ACI prod: ", sum(list(self.get_production().values())))
         machine_number = len(self.consumers)
@@ -105,8 +110,8 @@ class Utilisateur:
         #       f"\n{[int(pyo.value(user_block.E_IMP[v])) for v in user_block.E_IMP]}")
 
         data = []
-        production_colors = [["#96B1D6","#173C74"][self.is_step_HPHC(s)] for s in calculationParams.get_time_array()]
-        blues = ListedColormap(["#96B1D6","#173C74"])
+        # production_colors = [["#96B1D6","#173C74"][self.is_step_HPHC(s)] for s in calculationParams.get_time_array()]
+        blues = ListedColormap(["#173C74", "#96B1D6"])
         ACI_production = np.array(list(self.get_production().values()))
         plt_ax.bar(x=np.arange(calculationParams.simulation_size), height=ACI_production, color="#008440", width=1.2, zorder=0)
         # plt_ax.bar(x=np.arange(calculationParams.simulation_size), height=ACC_production, bottom=ACI_production, color=production_colors, width=1.2, zorder=0)

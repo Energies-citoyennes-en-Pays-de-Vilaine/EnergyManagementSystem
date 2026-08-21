@@ -14,6 +14,7 @@ from solution.ConsumerTypes.VehicleConsumer import VehicleConsumer
 from solution.Utilisateur import Utilisateur
 from solution.Calculation_Params import CalculationParams
 from solution.ProducerTypes.SolarProducer import SolarProducer
+from solution.Calendrier import Calendrier, Jour
 from utils.time.period import Period, get_merged_periods
 from utils.time.midnight import get_midnight_date
 from utils.time.timestamp import get_timestamp, get_round_timestamp
@@ -243,7 +244,7 @@ def get_panneaux_photovoltaiques(cohorte_id: str) -> List[Tuple[str, SolarProduc
 
 def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
 	utilisateurs = get_elfe_utilisateurs(db_credentials["ELFE"], cohorte_id)
-	to_return : Dict[str, Utilisateur] = {u.Id: Utilisateur(u.Id) for u in utilisateurs}
+	to_return : Dict[str, Utilisateur] = {u.Id: Utilisateur(u.Id, cohorte_id) for u in utilisateurs}
 	
 	vehicules_electriques = get_electric_vehicle(calculationsParams, cohorte_id)
 	for u, v in vehicules_electriques:
@@ -257,8 +258,24 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	for u, b in ballon_ecs:
 		to_return[u].add_consumer(b)
 
+	calendriers = get_calendriers(cohorte_id)
+	for u, c in calendriers:
+		if u in to_return.keys(): to_return[u].set_calendrier(c)
+
 	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}
 	return list(to_return.values())
+
+def get_calendriers(cohorte_id = COHORTE_ID) -> List[Tuple[str, Calendrier]]:
+	jours_bdd : List[jourType] = get_elfe_jours(db_credentials["ELFE"], cohorte_id)
+	jours : Dict[str: List[Jour]] = {}
+	for jour in jours_bdd:
+		current_jour = Jour(jour.horaires, jour.jour_semaine)
+		if jour.utilisateur in jours.keys():
+			jours[jour.utilisateur].append(current_jour)
+		else:
+			jours[jour.utilisateur] = [current_jour]
+	to_return : List[Tuple[str, Calendrier]] = [(u, Calendrier(j_list)) for u, j_list in jours.items()]
+	return to_return
 
 def get_cohorte_balance(timestamp: int) -> List[Tuple[int, float]]:
 	config = get_config()

@@ -174,10 +174,34 @@ def get_elfe_utilisateurs(credentials: Dict[str: str], cohorte_id: str) -> List[
 		[MODE_PILOTE, cohorte_id])
 	result = fetch(credentials, query)
 	if (result == None):
-		print("an error occured in SolarPVInput, sending back empty array not to block")
+		print("an error occured in Utilisateur, sending back empty array not to block")
 		return []
 	to_return=[(utilisateurType(r[0])) for r in result]
 	print("[debug info utilisateur]", to_return)
+	return to_return
+
+@dataclass
+class jourType:
+	Id : int
+	utilisateur : str
+	jour_semaine : str
+	horaires : str
+
+def get_elfe_jours(credentials: Dict[str: str], cohorte_id: str) -> List[jourType]:
+	query = (sql.SQL("""SELECT hphc.id, usr.id, hphc.jour, hphc.periode
+				  		FROM {0} AS hphc
+				  		INNER JOIN {1} AS usr on usr.id = hphc.utilisateur_id
+				  		WHERE usr.cohorte = %s""").format(
+		sql.Identifier(ELFE_database_names['ELFE_HPHC']),
+		sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+		),
+		[cohorte_id])
+	result = fetch(credentials, query)
+	if (result == None):
+		print("an error occured in Calendrier, sending back empty array not to block")
+		return []
+	to_return=[(jourType(*r)) for r in result]
+	print("[debug info calendriers]", to_return)
 	return to_return
 
 # def get_condition_utilisateur_statement(base: int, cohorte_id: str):

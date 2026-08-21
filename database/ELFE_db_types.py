@@ -17,6 +17,7 @@ ELFE_database_names = {
 	"ELFE_PanneauxPhotovoltaiques"		  	: "equipement_mesure_centrale_elec_generique",
 	"ELFE_Utilisateur"					  	: "utilisateur",
 	"ELFE_Cohorte"						  	: "cohorte_utilisateurs",
+	"ELFE_HPHC"								: "heures_creuses_utilisateur",
 }
 
 @serializableThroughDatabase
@@ -212,3 +213,11 @@ class ELFE_EtatCommandeType:
 	nom : str
 	nom_humain : str
 	description : str
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
+class EMS_Jour_HPHC():
+	Id : PrimaryAutoInt
+	utilisateur_id : str
+	jour : str
+	periode : str
