@@ -41,7 +41,7 @@ class Utilisateur:
         to_return = {key: sum(p[key] for p in productions) for key in productions[0].keys()}
         self.production = to_return
 
-    def set_calendrier(self, calendrier: Calendrier):
+    def set_calendrier(self, calendrier: Calendrier) -> None:
         self.calendrierHPHC = calendrier
 
     def create_block_submodel(self, user_block: pyo.Block, steps: pyo.RangeSet, calculationParams: CalculationParams, solar_prevision: Dict[int, float]) -> None:        
@@ -65,7 +65,7 @@ class Utilisateur:
             return (block.E_ACI[t] + block.E_ACC[t] + block.E_IMP[t]) >= sum(consumer.get_consumption_t(block.consumers[i], calculationParams, t) for i, consumer in enumerate(self.consumers))
         user_block.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
-    def is_step_HPHC(self, step):
+    def is_step_HPHC(self, step) -> bool:
         return self.calendrierHPHC.is_heure_creuse(dt.datetime.fromtimestamp(step))
     
     def get_sum_energy(self, user_block: pyo.Block, steps):

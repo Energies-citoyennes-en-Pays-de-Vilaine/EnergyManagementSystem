@@ -1,7 +1,7 @@
 from typing import Dict
 
 poids = {
-    "HPHCfirst"     : {"ACI": 0.01, "ACCHC": 1, "ACCHP": 10, "IMPHC": 5, "IMPHP": 50},
+    "HPHCfirst" : {"ACI": 0.01, "ACCHC": 1, "ACCHP": 10, "IMPHC": 5, "IMPHP": 50},
     "ACI_1"     : {"ACI": 0.01, "ACCHC": 1, "ACCHP": 5, "IMPHC": 10, "IMPHP": 50},
     "default"   : {"ACI": 0.01, "ACCHC": 1, "ACCHP": 5, "IMPHC": 10, "IMPHP": 50},
 }

@@ -21,12 +21,9 @@ class Jour:
 	
 	def __repr__(self):
 		return ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"][self.weekday]
-	
-	# def get_periodes(self, date : date) -> List[Tuple[datetime, datetime]]: 
-	# 	return [(datetime.combine(date, t[0]), datetime.combine(date, t[1]) + timedelta(seconds=1)) for t in self.heures_creuses]
-	
+		
 	def is_heure_creuse(self, step: datetime) -> bool:
-		return any(datetime.combine(step.date(), t[0]) <= step <= (datetime.combine(step.date(), t[1]) + timedelta(seconds=1)) for t in self.heures_creuses)
+		return any(datetime.combine(step.date(), t[0]) <= step <= (datetime.combine(step.date(), t[1]) - timedelta(seconds=1)) for t in self.heures_creuses)
 
 class Calendrier:
 	user_id	: int
@@ -46,14 +43,14 @@ class Calendrier:
 if __name__ == "__main__":
 	jours = []
 	# jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "monday"))
-	# jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "tuesday"))
-	# jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "wednesday"))
-	# jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "thursday"))
+	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "tuesday"))
+	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "wednesday"))
+	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "thursday"))
 	# jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "friday"))
-	# jours.append(Jour('- from "00:00:00" to "23:59:59"', "saturday"))
+	jours.append(Jour('- from "00:00:00" to "23:59:59"', "saturday"))
 	# jours.append(Jour('- from "00:00:00" to "23:59:59"', "sunday"))
 
 	c = Calendrier(jours)
 	# print(c)
 
-	print(c.is_heure_creuse(datetime.combine(date=datetime.now().date(), time=time(hour=23, minute=59, second=59))))
+	print(c.is_heure_creuse(datetime.combine(date=datetime.now().date(), time=time(hour=14, minute=00, second=00))))
