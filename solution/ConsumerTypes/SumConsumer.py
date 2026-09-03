@@ -15,6 +15,7 @@ class SumConsumer(Consumer_interface):
     conso_high           : float
     sum_periods          : List[SumPeriod]
     variables_timestamps : InitVar[List[int]]
+
     def __init__(self, id,  conso_low: float, conso_high: float, sum_periods : List[SumPeriod], consumer_machine_type = -1):
         self.conso_low   = conso_low
         self.conso_high  = conso_high
@@ -24,12 +25,16 @@ class SumConsumer(Consumer_interface):
         self.id = id
         self.is_reocurring = True
         self.consumer_machine_type = consumer_machine_type
+
     def _get_f_contrib(self, calculationParams : CalculationParams) -> List[float]:
         return [0 for i in range(self._get_minimizing_variables_count(calculationParams))]
+    
     def _get_integrality(self, calculationParams : CalculationParams) -> List[int]:
         return [1 for i in range(self._get_minimizing_variables_count(calculationParams))]
+    
     def _get_minimizing_constraints(self, calculationParams : CalculationParams) -> List[np.ndarray]:
         raise "not implemented yet"
+    
     def _get_functionnal_constraints(self, calculationParams : CalculationParams) -> np.ndarray:
         raise "not implemented yet"
 
@@ -61,6 +66,7 @@ class SumConsumer(Consumer_interface):
     def _get_constraints_size(self, calculationParams : CalculationParams) -> int:
         self.sum_periods = self._get_feasible_periods(calculationParams)
         return len(self.sum_periods) + len(self.get_variables_timestamps(calculationParams))
+    
     def _get_feasible_periods(self, calculationParams: CalculationParams) -> List[SumPeriod]:
         sum_periods = []
         for i, sum_period in enumerate(self.sum_periods):
@@ -98,6 +104,7 @@ class SumConsumer(Consumer_interface):
                     tofill[j + ypar, i + xpar] = 1
                     period_count += 1
                 tofill[i + ypar + len(self.sum_periods), i + xpar] = 1
+                
     def _get_consumption_curve(self, calculationParams : CalculationParams, variables : List[float]) -> np.ndarray:
         consumption = self._get_base_consumption(calculationParams)
         timestamps = self.get_variables_timestamps(calculationParams)

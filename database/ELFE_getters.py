@@ -5,35 +5,35 @@ from database.query import fetch
 from database.ELFE_db_types import ELFE_ChauffageNonAsservi, ELFE_database_names
 MODE_PILOTE = 30
 
-@dataclass
-class MachineToScheduleType():
-	Id             : int
-	cycle_name     : str
-	zabbix_id      : int
-	end_timestamp  : int
-	max_delay      : int
-	utilisateur	   : str
-	equipment_type : int
+# @dataclass
+# class MachineToScheduleType():
+# 	Id             : int
+# 	cycle_name     : str
+# 	zabbix_id      : int
+# 	end_timestamp  : int
+# 	max_delay      : int
+# 	utilisateur	   : str
+# 	equipment_type : int
 
-def get_machines_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> List[MachineToScheduleType]:
-	query = (sql.SQL("""SELECT machine.equipement_pilote_ou_mesure_id, cycle.nom, machine.mesures_puissance_elec_id, machine.timestamp_de_fin_souhaite, machine.delai_attente_maximale_apres_fin, epm.equipement_pilote_ou_mesure_type_id
-						FROM {0} AS machine
-						INNER JOIN {1} AS cycle ON cycle.id = machine.cycle_equipement_pilote_machine_generique_id 
-						INNER JOIN {2} AS epm ON machine.equipement_pilote_ou_mesure_id = epm.id
-				  		INNER JOIN {3} AS usr ON epm.utilisateur = usr.id
-						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
-				  		AND usr.cohorte = %s""").format(
-				sql.Identifier(ELFE_database_names['ELFE_MachineGenerique']),
-    			sql.Identifier(ELFE_database_names['ELFE_MachineGeneriqueCycle']),
-				sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
-				sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
-			),  [MODE_PILOTE, cohorte_id])
-	result = fetch(credentials, query)
-	result_typed : List[MachineToScheduleType] = [MachineToScheduleType(r[0], r[1], r[2], r[3], r[4], r[5]) for r in result]
-	result_typed : List[MachineToScheduleType] = [MachineToScheduleType(*r[0:6]) for r in result]
+# def get_machines_to_schedule(credentials: Dict[str: str], cohorte_id: str) -> List[MachineToScheduleType]:
+# 	query = (sql.SQL("""SELECT machine.equipement_pilote_ou_mesure_id, cycle.nom, machine.mesures_puissance_elec_id, machine.timestamp_de_fin_souhaite, machine.delai_attente_maximale_apres_fin, epm.equipement_pilote_ou_mesure_type_id
+# 						FROM {0} AS machine
+# 						INNER JOIN {1} AS cycle ON cycle.id = machine.cycle_equipement_pilote_machine_generique_id 
+# 						INNER JOIN {2} AS epm ON machine.equipement_pilote_ou_mesure_id = epm.id
+# 				  		INNER JOIN {3} AS usr ON epm.utilisateur = usr.id
+# 						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
+# 				  		AND usr.cohorte = %s""").format(
+# 				sql.Identifier(ELFE_database_names['ELFE_MachineGenerique']),
+#     			sql.Identifier(ELFE_database_names['ELFE_MachineGeneriqueCycle']),
+# 				sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
+# 				sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+# 			),  [MODE_PILOTE, cohorte_id])
+# 	result = fetch(credentials, query)
+# 	result_typed : List[MachineToScheduleType] = [MachineToScheduleType(r[0], r[1], r[2], r[3], r[4], r[5]) for r in result]
+# 	result_typed : List[MachineToScheduleType] = [MachineToScheduleType(*r[0:6]) for r in result]
 
-	print("[debug info machine]", result_typed)
-	return result_typed
+# 	print("[debug info machine]", result_typed)
+# 	return result_typed
 
 @dataclass
 class ECSToScheduleType():
@@ -192,7 +192,7 @@ def get_elfe_jours(credentials: Dict[str: str], cohorte_id: str) -> List[jourTyp
 				  		FROM {0} AS hphc
 				  		INNER JOIN {1} AS usr on usr.id = hphc.utilisateur_id
 				  		WHERE usr.cohorte = %s""").format(
-		sql.Identifier(ELFE_database_names['ELFE_HPHC']),
+		sql.Identifier(ELFE_database_names['ELFE_Jour_HPHC']),
 		sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
 		),
 		[cohorte_id])
