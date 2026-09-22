@@ -73,21 +73,20 @@ class ECSConsumer(Consumer_interface):
 								else self.consommation[step_timestamp-lancement_timestamp]) * consumerBlock.decisions[lancement_timestamp]
 		return to_return
 	
-	def _get_decisions(self, calculationParams: CalculationParams, launch_timestamp : int) -> np.ndarray:
+	def _get_decisions(self, calculationParams: CalculationParams, launch_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		launch_step = synchronise(launch_timestamp)
+		launch_step = synchronise(launch_timestamps[0])
 		end_step = min(launch_step + self.tp["steps_count"] + 8, calculationParams.simulation_size - 1)
 		self.total_duration = end_step - launch_step
 		toReturn[launch_step: end_step] = 1
 		return toReturn
 	
-	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
-		decision = (decision - calculationParams.begin) // calculationParams.step_size_s
-		sim_size = calculationParams.simulation_size
-		toReturn = np.zeros((sim_size,), np.float64)
+	def _get_consumption_curve(self, calculationParams: CalculationParams, decisions: List[int]) -> np.ndarray:
+		toReturn = np.zeros((calculationParams.simulation_size,), np.float64)
+		decision = (decisions[0] - calculationParams.begin) // calculationParams.step_size_s
 		for k, v in self.consommation.items():
 			index = k // calculationParams.step_size_s + decision
-			if index >= sim_size:
+			if index >= calculationParams.simulation_size:
 				break
 			toReturn[index] = v
 		return toReturn

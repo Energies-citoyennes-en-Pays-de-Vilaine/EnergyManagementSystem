@@ -1,5 +1,5 @@
 # from elfe_interfaces.ELFE_data_gatherer import get_machines, get_ECS, get_electric_vehicle, get_sum_consumer, get_heater_consumer
-from elfe_interfaces.ELFE_data_gatherer import get_calculation_params, get_cohorte_balance, get_utilisateurs, get_production_solaire, show_productions
+from elfe_interfaces.ELFE_data_gatherer import get_calculation_params, get_cohorte_balance, get_utilisateurs, get_production_solaire
 from utils.time.timestamp import get_round_timestamp, get_timestamp, synchronise
 from database.EMS_db_types import EMSPowerCurveData, EMSResult, EMSResultEcs, EMSEnergyWeather
 from database.EMS_OUT_db_types import EMSRunInfo
@@ -53,12 +53,12 @@ if __name__ == "__main__":
 	sim_params: CalculationParams = get_calculation_params(simulation_datas=cohorte_balance, timestamp=timestamp)
 	utilisateurs: List[Utilisateur] = []
 
-	# utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
+	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
 
-	try:
-		utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
-	except Exception as e:
-		print(e, "tb=", e.__traceback__.tb_frame)
+	# try:
+	# 	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
+	# except Exception as e:
+	# 	print(e, "tb=", e.__traceback__.tb_frame)
 
 	if (conf.log_problem_settings_active):
 		log_run_conditions_to_file(f"{conf.log_problem_settings_path}/{timestamp}_{round_start_timestamp}.py", timestamp, round_start_timestamp, sim_params, utilisateurs)

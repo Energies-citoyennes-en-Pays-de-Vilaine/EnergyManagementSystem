@@ -93,14 +93,14 @@ class VehicleConsumer(Consumer_interface):
 		capacity_per_step = self.power_watt * calculationParams.step_size_s / 3600
 		self.consommation = {calculationParams.step_size_s * i: self.power_watt for i in range(ceil(capacity_wanted / capacity_per_step))}
 
-	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamp : int) -> np.ndarray:
+	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		launch_step = synchronise(launch_timestamp)
+		launch_step = synchronise(launch_timestamps[0])
 		toReturn[launch_step] = 1
 		return toReturn
 	
-	def _get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
-		decision = (decision - calculationParams.begin) // calculationParams.step_size_s
+	def _get_consumption_curve(self, calculationParams: CalculationParams, decisions: List[int]) -> np.ndarray:
+		decision = (decisions[0] - calculationParams.begin) // calculationParams.step_size_s
 		sim_size = calculationParams.simulation_size
 		toReturn = np.zeros((sim_size,), np.float64)
 		for k, v in self.consommation.items():

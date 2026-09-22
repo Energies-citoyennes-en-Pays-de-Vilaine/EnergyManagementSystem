@@ -5,6 +5,11 @@ from config.config import get_config
 
 configuration = get_config()
 
+EMS_database_names = {
+	"EMS_Result" : "result",
+}
+
+
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class EMSMachineData():

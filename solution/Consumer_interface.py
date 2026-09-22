@@ -14,11 +14,11 @@ class Consumer_interface():
 	consumer_machine_type : Optional[int]
 	
 	def create_consumer(self, block: pyo.Block, calculationParams: CalculationParams) -> None:
+		self.calcul_consommation(calculationParams)
 		checkFunctionExist(self, "_create_consumer_variable")
 		self._create_consumer_variable(block, calculationParams)
 		checkFunctionExist(self, "_create_consumer_constraint")
 		self._create_consumer_constraint(block, calculationParams)
-		self.calcul_consommation(calculationParams)
 
 	def get_consumption_t(self, block: pyo.Block, calculationParams: CalculationParams, step_timestamp: int) -> pyo.Var:
 		checkFunctionExist(self, "_get_consumption_t")
@@ -28,12 +28,12 @@ class Consumer_interface():
 		checkFunctionExist(self, "_calcul_consommation")
 		self._calcul_consommation(calculationParams)
 	
-	def get_decisions(self, calculationParams : CalculationParams, variables : List[float]) -> np.ndarray:
+	def get_decisions(self, calculationParams : CalculationParams, problem_decisions : List[int]) -> np.ndarray:
 		checkFunctionExist(self, "_get_decisions")
-		decisions = self._get_decisions(calculationParams, variables)
+		decisions = self._get_decisions(calculationParams, problem_decisions)
 		return decisions
 
-	def get_consumption_curve(self, calculationParams: CalculationParams, decision: int) -> np.ndarray:
+	def get_consumption_curve(self, calculationParams: CalculationParams, decision: List[int]) -> np.ndarray:
 		checkFunctionExist(self, "_get_consumption_curve")
 		consumption_curve = self._get_consumption_curve(calculationParams, decision)
 		#TODO_ELFE better unit tests

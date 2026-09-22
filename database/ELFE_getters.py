@@ -2,7 +2,7 @@ from typing import List, Dict, Union
 from psycopg2 import sql
 from dataclasses import dataclass
 from database.query import fetch
-from database.ELFE_db_types import ELFE_ChauffageNonAsservi, ELFE_database_names
+from database.ELFE_db_types import ELFE_database_names
 MODE_PILOTE = 30
 
 # @dataclass
@@ -99,30 +99,71 @@ def get_electric_vehicle_to_schedule(credentials: Dict[str: str], cohorte_id: st
 	print("[debug info Electric vehicle]", result_typed)
 	return result_typed
 
-def get_elfe_not_piloted_heater(credentials: Dict[str: str], cohorte_id: str) -> List[ELFE_ChauffageNonAsservi]:
-	#not piloted means that we have no temperature sensor here
-	query = (sql.SQL("""SELECT heater.*, epm.equipement_pilote_ou_mesure_type_id 
-						FROM {0} AS heater
-						INNER JOIN {1} AS epm ON epm.id = heater.equipement_pilote_ou_mesure_id
-				  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur
-						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
+@dataclass
+class notPilotedHeaterType:
+	id								: int
+	equipement_pilote_ou_mesure_id 	: int
+	puissance_moyenne_eco 			: int
+	puissance_moyenne_confort 		: int
+	pourcentage_eco_force 			: int
+	mesures_puissance_elec_id 		: int
+	utilisateur 					: str
+	confort_monday 					: str
+	confort_tuesday 				: str
+	confort_wednesday 				: str
+	confort_thursday 				: str
+	confort_friday 					: str
+	confort_saturday 				: str
+	confort_sunday 					: str
+
+def get_elfe_not_piloted_heater(credentials: Dict[str: str], timestamp: int, cohorte_id: str) -> List[notPilotedHeaterType]:
+	query = (sql.SQL("""SELECT 	heater.id, heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, heater.mesures_puissance_elec_id, usr.id,
+				  				heater.confort_monday, heater.confort_tuesday, heater.confort_wednesday, heater.confort_thursday, heater.confort_friday, heater.confort_saturday, heater.confort_sunday
+				  		FROM {0} as heater
+				  		INNER JOIN {1} as epm ON epm.id = heater.equipement_pilote_ou_mesure_id
+				        INNER JOIN {2} as usr ON usr.id = epm.utilisateur
+				  		WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
 				  		AND usr.cohorte = %s""").format(
-			sql.Identifier(ELFE_database_names['ELFE_ChauffageNonAsservi']),
-			sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
-			sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
-		),
-		[MODE_PILOTE, cohorte_id])
+				sql.Identifier(ELFE_database_names['ELFE_ChauffageNonAsservi']),
+				sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
+				sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+			),
+			[MODE_PILOTE, cohorte_id])
 	result = fetch(credentials, query)
-	to_return : List[ELFE_ChauffageNonAsservi] = []
+	to_return : List[notPilotedHeaterType] = []
 	if (result == None):
 		print("an error occured in ELFE_Chauffage_non_asservi, sending back empty array not to block")
 		return []
 	for r in result:
-		new_elem = ELFE_ChauffageNonAsservi.create_from_select_output(r[:-1])
-		new_elem.equipement_type = r[-1]
-		to_return.append(new_elem)
+		heater = notPilotedHeaterType(*r)
+		to_return.append(heater)
 	print("[debug info chauffage non asservi]", to_return)
 	return to_return
+
+# def get_elfe_not_piloted_heater_old(credentials: Dict[str: str], cohorte_id: str) -> List[ELFE_ChauffageNonAsservi]:
+# 	#not piloted means that we have no temperature sensor here
+# 	query = (sql.SQL("""SELECT heater.*, epm.equipement_pilote_ou_mesure_type_id 
+# 						FROM {0} AS heater
+# 						INNER JOIN {1} AS epm ON epm.id = heater.equipement_pilote_ou_mesure_id
+# 				  		INNER JOIN {2} AS usr ON usr.id = epm.utilisateur
+# 						WHERE epm.equipement_pilote_ou_mesure_mode_id = %s
+# 				  		AND usr.cohorte = %s""").format(
+# 			sql.Identifier(ELFE_database_names['ELFE_ChauffageNonAsservi']),
+# 			sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
+# 			sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+# 		),
+# 		[MODE_PILOTE, cohorte_id])
+# 	result = fetch(credentials, query)
+# 	to_return : List[ELFE_ChauffageNonAsservi] = []
+# 	if (result == None):
+# 		print("an error occured in ELFE_Chauffage_non_asservi, sending back empty array not to block")
+# 		return []
+# 	for r in result:
+# 		new_elem = ELFE_ChauffageNonAsservi.create_from_select_output(r[:-1])
+# 		new_elem.equipement_type = r[-1]
+# 		to_return.append(new_elem)
+# 	print("[debug info chauffage non asservi]", to_return)
+# 	return to_return
 
 @dataclass
 class SolarPVInputType:
@@ -203,18 +244,6 @@ def get_elfe_jours(credentials: Dict[str: str], cohorte_id: str) -> List[jourTyp
 	to_return=[(jourType(*r)) for r in result]
 	print("[debug info calendriers]", to_return)
 	return to_return
-
-# def get_condition_utilisateur_statement(base: int, cohorte_id: str):
-# 	return (f"""IN (SELECT DISTINCT usr.id
-# 		 			FROM {{{base + 0}}} AS usr
-# 					INNER JOIN {{{base + 1}}} AS epm ON usr.id = epm.utilisateur
-# 					WHERE epm.equipement_pilote_ou_mesure_mode_id = 30
-# 					AND usr.cohorte = {{{base + 2}}})""",
-# 		[		
-# 		sql.Identifier(ELFE_database_names['ELFE_Utilisateur']),
-# 		sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
-# 		cohorte_id
-# 	])
 
 if __name__ == "__main__":
 	print("ELFE_getters")

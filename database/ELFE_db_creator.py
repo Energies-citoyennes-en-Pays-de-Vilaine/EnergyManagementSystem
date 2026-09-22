@@ -5,7 +5,7 @@ from database.ELFE_db_types import *
 def create_tables(credentials):
 	tables_queries = [
 		ELFE_BallonECS                      .get_create_table_str(ELFE_database_names["ELFE_BallonECS"                      ]),
-		ELFE_ChauffageNonAsservi            .get_create_table_str(ELFE_database_names["ELFE_ChauffageNonAsservi"            ]),
+		ELFE_Chauffage				        .get_create_table_str(ELFE_database_names["ELFE_ChauffageNonAsservi"            ]),
 		ELFE_EquipementPilote               .get_create_table_str(ELFE_database_names["ELFE_EquipementPilote"               ]),
 		ELFE_VehiculeElectriqueGenerique    .get_create_table_str(ELFE_database_names["ELFE_VehiculeElectriqueGenerique"    ]),
 		ELFE_Utilisateur					.get_create_table_str(ELFE_database_names["ELFE_Utilisateur"					]),		

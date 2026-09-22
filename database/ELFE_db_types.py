@@ -55,6 +55,23 @@ class ELFE_ChauffageAsserviModeleThermique():
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class ELFE_Chauffage():
+	Id                                         	: PrimaryAutoInt
+	equipement_pilote_ou_mesure_id             	: int
+	confort_monday								: str
+	confort_tuesday								: str
+	confort_wednesday							: str
+	confort_thursday							: str
+	confort_friday								: str
+	confort_saturday							: str
+	confort_sunday								: str
+	puissance_moyenne_eco                      	: int
+	puissance_moyenne_confort                  	: int
+	pourcentage_eco_force                      	: int
+	mesures_puissance_elec_id                  	: int
+
+@serializableThroughDatabase
+@dataclass(init=True, repr=True)
+class ELFE_Chauffage_old():
 	prog_semaine_periode_1_confort_actif       : bool
 	prog_semaine_periode_1_confort_heure_debut : int
 	prog_semaine_periode_1_confort_heure_fin   : int
@@ -83,7 +100,7 @@ class ELFE_Chauffage():
 	
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
-class ELFE_ChauffageAsservi(ELFE_Chauffage):
+class ELFE_ChauffageAsservi_old(ELFE_Chauffage_old):
 	Id                                         : int
 	equipement_pilote_ou_mesure_id             : int
 	temperature_eco                            : int
@@ -108,7 +125,7 @@ class ELFE_ChauffageAsservi(ELFE_Chauffage):
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
-class ELFE_ChauffageNonAsservi(ELFE_Chauffage):
+class ELFE_ChauffageNonAsservi_old(ELFE_Chauffage_old):
 	Id                                         : PrimaryAutoInt
 	equipement_pilote_ou_mesure_id             : int
 	prog_semaine_periode_1_confort_actif       : bool

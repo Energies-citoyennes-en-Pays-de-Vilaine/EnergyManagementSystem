@@ -1,4 +1,4 @@
-from database.ELFE_db_types import ELFE_BallonECS, ELFE_BallonECSHeuresCreuses, ELFE_ChauffageAsservi, ELFE_ChauffageAsserviModeleThermique, ELFE_ChauffageNonAsservi, ELFE_EquipementPilote, ELFE_MachineGenerique, ELFE_MachineGeneriqueCycle, ELFE_VehiculeElectriqueGenerique
+from database.ELFE_db_types import ELFE_BallonECS, ELFE_BallonECSHeuresCreuses, ELFE_ChauffageAsservi_old, ELFE_ChauffageAsserviModeleThermique, ELFE_ChauffageNonAsservi_old, ELFE_EquipementPilote, ELFE_MachineGenerique, ELFE_MachineGeneriqueCycle, ELFE_VehiculeElectriqueGenerique
 from database.ELFE_db_types import ELFE_database_names
 from database.query import execute_queries, fetch
 from database.EMS_db_types import EMSCycle,EMSCycleData, EMSDeviceTemperatureData, EMSMachineData, EMSPowerCurveData, InitialWheatherForecast, HistoricalInitialWheatherForecast
@@ -13,8 +13,8 @@ MODE_PILOTE = 30
 @dataclass(init=True, repr=True)
 class StudyCase():
 	machines         : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_MachineGenerique, ELFE_MachineGeneriqueCycle]]
-	drived_heater    : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_ChauffageAsservi]]
-	undrived_heater  : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_ChauffageNonAsservi]]
+	drived_heater    : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_ChauffageAsservi_old]]
+	undrived_heater  : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_ChauffageNonAsservi_old]]
 	electric_vehicle : Dict[int, 	Tuple[ELFE_EquipementPilote, ELFE_VehiculeElectriqueGenerique]]
 	thermic_models   : Dict[int, ELFE_ChauffageAsserviModeleThermique]
 	ecs              : Dict[int, Tuple[ELFE_EquipementPilote, ELFE_BallonECS, List[ELFE_BallonECSHeuresCreuses]]] = field(default_factory=dict)
@@ -73,7 +73,7 @@ def register_machine(credentials, params) -> Tuple[ELFE_EquipementPilote, ELFE_M
 	execute_queries(credentials, [machine.get_update_in_table_str(ELFE_database_names["ELFE_MachineGenerique"])])
 	return (equipment, machine, cycle)
 
-def register_drived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, ELFE_ChauffageAsservi]:
+def register_drived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, ELFE_ChauffageAsservi_old]:
 	populate_params_with(params, "temp_eco",                2901)
 	populate_params_with(params, "temp_comfort",            2931)
 	populate_params_with(params, "week_period_1_active",    False)
@@ -94,7 +94,7 @@ def register_drived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, 
 	populate_params_with(params, "power_id",                0)
 	populate_params_with(params, "temp_sensor_id",          0)
 
-	heater = ELFE_ChauffageAsservi(0, 0, params["temp_eco"], params["temp_comfort"], 
+	heater = ELFE_ChauffageAsservi_old(0, 0, params["temp_eco"], params["temp_comfort"], 
 	params["week_period_1_active"], params["week_period_1_start"], params["week_period_1_end"],
 	params["week_period_2_active"], params["week_period_2_start"], params["week_period_2_end"],
 	params["weekend_period_1_active"], params["weekend_period_1_start"], params["weekend_period_1_end"],
@@ -111,7 +111,7 @@ def register_drived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, 
 	print("drived_heater_params:", ", ".join(list(params.keys())))
 	return (equipment, heater)
 
-def register_undrived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, ELFE_ChauffageNonAsservi]:
+def register_undrived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote, ELFE_ChauffageNonAsservi_old]:
 	populate_params_with(params, "week_period_1_active",    False)
 	populate_params_with(params, "week_period_1_start",     0)
 	populate_params_with(params, "week_period_1_end",       0)
@@ -129,7 +129,7 @@ def register_undrived_heater(credentials, params) -> Tuple[ELFE_EquipementPilote
 	populate_params_with(params, "forced_eco_pourc",        75)
 	populate_params_with(params, "power_id",                0)
 	
-	heater = ELFE_ChauffageNonAsservi(0,0,
+	heater = ELFE_ChauffageNonAsservi_old(0,0,
 	params["week_period_1_active"], params["week_period_1_start"], params["week_period_1_end"],
 	params["week_period_2_active"], params["week_period_2_start"], params["week_period_2_end"],
 	params["weekend_period_1_active"], params["weekend_period_1_start"], params["weekend_period_1_end"],

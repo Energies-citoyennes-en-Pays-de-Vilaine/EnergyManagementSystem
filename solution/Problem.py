@@ -96,16 +96,14 @@ class Problem():
 			for c, consumer in enumerate(utilisateur.consumers):
 				model_consumer = self.model.utilisateurs[u].consumers[c]
 				decisions = [j for j, d in enumerate(model_consumer.decision_set) if round(pyo.value(model_consumer.decisions[d]),5)]
-				if len(decisions) == 1:
-					problem_decisions.append(
-						{
-							"id"			: consumer.id,
-							"reocurring"	: consumer.is_reocurring,
-							"is_ECS"		: type(consumer) == ECSConsumer,
-							"decisions"		: consumer.get_decisions(self.calculationParams, decisions[0]).tolist(),
-							"consumer"		: consumer
-						})
-				#TODO considérer les décicions multiples (ECS, Chauffage)
+				problem_decisions.append(
+					{
+						"id"			: consumer.id,
+						"reocurring"	: consumer.is_reocurring,
+						"is_ECS"		: type(consumer) == ECSConsumer,
+						"decisions"		: consumer.get_decisions(self.calculationParams, decisions).tolist(),
+						"consumer"		: consumer
+					})
 		return problem_decisions
 	
 	def show_consumptions(self) -> None:

@@ -1,13 +1,12 @@
-from database.ELFE_db_types import ELFE_BallonECS, ELFE_BallonECSHeuresCreuses, ELFE_ChauffageAsservi, ELFE_ChauffageAsserviModeleThermique, ELFE_ChauffageNonAsservi, ELFE_EquipementPilote, ELFE_MachineGenerique, ELFE_MachineGeneriqueCycle, ELFE_VehiculeElectriqueGenerique
+from database.ELFE_db_types import ELFE_Chauffage
 from database.ELFE_db_types import ELFE_database_names
-from database.EMS_db_types import EMSCycle, EMSCycleData, EMSDeviceTemperatureData, EMSMachineData, EMSPowerCurveData, InitialWheatherForecast, EMS_Modele_Thermique
+# from database.EMS_db_types import
 from database.query import execute_queries, fetch
 from database.EMS_getters import *
 from database.ELFE_getters import *
 from credentials.db_credentials import db_credentials
 from typing import List, Tuple, Dict
-from solution.ConsumerTypes.HeaterConsumer import HeaterConsumer
-from solution.ConsumerTypes.SumConsumer import SumConsumer, SumPeriod
+from solution.ConsumerTypes.SumConsumer import SumConsumer#, SumPeriod
 from solution.ConsumerTypes.MachineConsumer import MachineConsumer
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.ConsumerTypes.VehicleConsumer import VehicleConsumer
@@ -71,75 +70,19 @@ def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) 
 		vehicles.append((v.utilisateur, VehicleConsumer(v.Id, v.power_W, v.capa_WH, v.current_charge_left_percent, v.target_charge_percent, calculationParams, v.end_timestamp, v.equipement_type)))
 	return vehicles
 
-def get_sum_consumer(timestamp : int, calculationParams: CalculationParams) -> List[SumConsumer]:
-	"""
-	Sum consumers currently are only made of heaters on which we don't have access to the room's heat
-	"""
-	elfe_heater : List[ELFE_ChauffageNonAsservi] = get_elfe_not_piloted_heater(db_credentials["ELFE"])
-	starting_periods : List[datetime] = [get_midnight_date(timestamp - DAY_TIME_SECONDS), get_midnight_date(timestamp), get_midnight_date(timestamp + DAY_TIME_SECONDS)]
-	sum_consumers : List[SumConsumer] = []
-	#TODO développement sum_consumer
-	for heater in elfe_heater:
-		periods : List[Period] = []
-		for start in starting_periods:
-			periods += heater.get_periods(start)
-		for p in periods:
-			p.snap_to(calculationParams.time_delta) #snaps period to the current time delta
-		periods = get_merged_periods(periods)
-		periods = list(filter(lambda x : (x - timestamp).end > 0, periods))
-		periods = sorted(periods, key=lambda x : x.start)
-		if len(periods) == 0:
-			print(f"no periods to schedule for heater {heater.equipement_pilote_ou_mesure_id}")
-			continue
-		first_period : Period = periods[0].deep_copy()
-		first_period_cutted : Period = first_period.deep_copy()
-		first_period_cutted.cut(calculationParams.begin, calculationParams.end)
-		for p in periods:
-			p.cut(calculationParams.begin , calculationParams.end)
-		period_filtered : List[Period] = list(filter(lambda x : x.end - x.start > 0, periods))
-		if len(period_filtered) == 0:
-			print(f"no periods left to schedule for heater {heater.equipement_pilote_ou_mesure_id} after cutting on the simulation params")
-			continue
-		count : int = 0
-		summ : int = 0
-		if (first_period_cutted in period_filtered):
-			heater_history_query = ("SELECT COUNT(*) as c, SUM(decisions_0) as s FROM result WHERE\
-			   first_valid_timestamp > %s AND machine_id = %s GROUP BY machine_id",
-			   [first_period.start, heater.equipement_pilote_ou_mesure_id]
-			   )
-			heater_history_result = fetch(db_credentials["EMS"], heater_history_query)
-			try:
-				count = heater_history_result[0][0]
-				summ  = heater_history_result[0][1]
-			except IndexError as e:
-				count = 0
-				summ = 0
-		sum_periods : List[SumPeriod] = []
-		for p in period_filtered:
-			expected_ratio : int = (100.0 - heater.pourcentage_eco_force) / 100.0
-			expected_sum : int =  round( expected_ratio * (count + (p.end - p .start) / calculationParams.step_size_s))
-			expected_sum_left : int = expected_sum - summ
-			steps_left : int = round((p.end - p .start) / calculationParams.step_size_s)
-			if (expected_sum_left > steps_left):
-				print(f"something went wrong with heater {heater.equipement_pilote_ou_mesure_id} period({p}), reducing expected sum left")
-				print(f"ratio {expected_ratio} end {p.end} start {p.start} sum {expected_sum}, left {expected_sum_left}, steps {steps_left}")
-				expected_sum_left = steps_left
-			sliding_period_steps : int = round(config.heater_eco_sliding_period_s / calculationParams.step_size_s)
-			sliding_period_count : int = steps_left // sliding_period_steps
-			sliding_period_consumption_denied : int = ceil(sliding_period_steps * config.heater_eco_sliding_percentage / 100.0)
-			sliding_period_min : int = max(0, sliding_period_steps - sliding_period_consumption_denied)
-			sliding_period_max : int = sliding_period_steps
-			for i in range(sliding_period_count):
-				start_time : int = i * calculationParams.step_size_s
-				sum_period : SumPeriod = SumPeriod(p.start + start_time, p.start + start_time + sliding_period_steps * calculationParams.step_size_s, sliding_period_min, sliding_period_max)
-				sum_periods.append(sum_period)
-			
-			sum_periods.append(SumPeriod(p.start, p.end, expected_sum_left, steps_left))
-			count = 0
-			summ = 0
-		sum_consumer : SumConsumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, sum_periods, heater.equipement_type)
-		sum_consumers.append(sum_consumer)
-	return sum_consumers
+def get_sum_consumer(timestamp : int, calculationParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Tuple[str, SumConsumer]]:
+	elfe_heaters: List[notPilotedHeaterType] = get_elfe_not_piloted_heater(db_credentials["ELFE"], timestamp, cohorte_id)
+	to_return : List[Tuple[str, SumConsumer]] = []
+	previous_launches = get_heater_launches(db_credentials, calculationParams.begin)
+	for heater in elfe_heaters:
+		curent_heater_previous_launches = previous_launches[heater.equipement_pilote_ou_mesure_id] if heater.equipement_pilote_ou_mesure_id in previous_launches.keys() else 0
+		list_jour : List[Jour] = []
+		for day_name in ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]:
+			list_jour.append(Jour(getattr(heater, f"confort_{day_name}"), day_name))
+		calendrier_confort = Calendrier_confort(list_jour)
+		current_sum_consumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, calendrier_confort, calculationParams, curent_heater_previous_launches)
+		to_return.append((heater.utilisateur, current_sum_consumer))
+	return to_return
 
 def get_panneaux_photovoltaiques(cohorte_id: str) -> List[Tuple[str, SolarProducer]]:
 	panneaux = get_elfe_solar_pv(db_credentials["ELFE"], cohorte_id)
@@ -160,13 +103,17 @@ def get_utilisateurs(timestamp: int, calculationParams: CalculationParams, cohor
 	for u, p in panneaux_photovoltaiques:
 		to_return[u].add_producer(p)
 
-	ballon_ecs = get_ECS(timestamp, calculationParams, cohorte_id)
-	for u, b in ballon_ecs:
-		to_return[u].add_consumer(b)
+	# ballon_ecs = get_ECS(timestamp, calculationParams, cohorte_id)
+	# for u, b in ballon_ecs:
+	# 	to_return[u].add_consumer(b)
 
-	calendriers = get_calendriers(cohorte_id)
-	for u, c in calendriers:
+	calendriers_hphc = get_calendriers(cohorte_id)
+	for u, c in calendriers_hphc:
 		if u in to_return.keys(): to_return[u].set_calendrier(c)
+
+	heaters = get_sum_consumer(timestamp, calculationParams, cohorte_id)
+	for u, h in heaters:
+		if u in to_return.keys(): to_return[u].add_consumer(h)
 
 	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}
 	return list(to_return.values())
@@ -330,4 +277,5 @@ if __name__ == "__main__":
 
 	# print(get_panneaux_photovoltaiques(COHORTE_ID))
 	# print(get_electric_vehicle(get_timestamp(), COHORTE_ID))
-	show_productions(datetime.now().timestamp())
+	get_sum_consumer(0, None)
+	# show_productions(datetime.now().timestamp())
