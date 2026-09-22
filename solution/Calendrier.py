@@ -62,7 +62,7 @@ class Calendrier_confort(Calendrier):
 		self.is_confort_timestamp = self.is_in_calendar_timestamp
 
 	def get_past_confort_hours(self, timestamp: int) -> int:
-		timestamps = [timestamp - DAY_LENGTH, int(datetime.combine(datetime.fromtimestamp(timestamp).date(), time(0, 0, 0))), timestamp]
+		timestamps = [timestamp - DAY_LENGTH, int(datetime.combine(datetime.fromtimestamp(timestamp).date(), time(0, 0, 0)).timestamp()), timestamp]
 		return self.get_confort_hours(timestamps)
 	
 	def get_futur_confort_hours(self, timestamp: int) -> int:
