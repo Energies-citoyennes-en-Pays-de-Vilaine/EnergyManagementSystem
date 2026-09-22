@@ -14,7 +14,7 @@ from solution.ConsumerTypes.VehicleConsumer import VehicleConsumer
 from solution.Utilisateur import Utilisateur
 from solution.Calculation_Params import CalculationParams
 from solution.ProducerTypes.SolarProducer import SolarProducer
-from solution.Calendrier import Calendrier, Jour
+from solution.Calendrier import Calendrier_HPHC, Jour, Calendrier_confort
 from utils.time.period import Period, get_merged_periods
 from utils.time.midnight import get_midnight_date
 from utils.time.timestamp import get_timestamp, get_round_timestamp
@@ -148,11 +148,11 @@ def get_panneaux_photovoltaiques(cohorte_id: str) -> List[Tuple[str, SolarProduc
 		to_return.append((p.utilisateur, SolarProducer(id=p.Id, puissance_crete_W=p.puissance_crete_W, orientation=p.orientation)))
 	return to_return
 
-def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
+def get_utilisateurs(timestamp: int, calculationParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Utilisateur]:
 	utilisateurs = get_elfe_utilisateurs(db_credentials["ELFE"], cohorte_id)
 	to_return : Dict[str, Utilisateur] = {u.Id: Utilisateur(u.Id, cohorte_id) for u in utilisateurs}
 	
-	vehicules_electriques = get_electric_vehicle(calculationsParams, cohorte_id)
+	vehicules_electriques = get_electric_vehicle(calculationParams, cohorte_id)
 	for u, v in vehicules_electriques:
 		to_return[u].add_consumer(v)
 	
@@ -160,7 +160,7 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	for u, p in panneaux_photovoltaiques:
 		to_return[u].add_producer(p)
 
-	ballon_ecs = get_ECS(timestamp, calculationsParams, cohorte_id)
+	ballon_ecs = get_ECS(timestamp, calculationParams, cohorte_id)
 	for u, b in ballon_ecs:
 		to_return[u].add_consumer(b)
 
@@ -171,7 +171,7 @@ def get_utilisateurs(timestamp: int, calculationsParams: CalculationParams, coho
 	to_return = {i: u for i, u in to_return.items() if not u.is_consumer_empty()}
 	return list(to_return.values())
 
-def get_calendriers(cohorte_id = COHORTE_ID) -> List[Tuple[str, Calendrier]]:
+def get_calendriers(cohorte_id = COHORTE_ID) -> List[Tuple[str, Calendrier_HPHC]]:
 	jours_bdd : List[jourType] = get_elfe_jours(db_credentials["ELFE"], cohorte_id)
 	jours : Dict[str: List[Jour]] = {}
 	for jour in jours_bdd:
@@ -180,7 +180,7 @@ def get_calendriers(cohorte_id = COHORTE_ID) -> List[Tuple[str, Calendrier]]:
 			jours[jour.utilisateur].append(current_jour)
 		else:
 			jours[jour.utilisateur] = [current_jour]
-	to_return : List[Tuple[str, Calendrier]] = [(u, Calendrier(j_list)) for u, j_list in jours.items()]
+	to_return : List[Tuple[str, Calendrier_HPHC]] = [(u, Calendrier_HPHC(j_list)) for u, j_list in jours.items()]
 	return to_return
 
 def get_cohorte_balance(timestamp: int) -> List[Tuple[int, float]]:

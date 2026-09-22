@@ -2,7 +2,7 @@ from typing import List, Dict
 from solution.Consumer_interface import Consumer_interface
 from solution.Production_interface import Producer_interface
 from solution.Calculation_Params import CalculationParams
-from solution.Calendrier import Calendrier
+from solution.Calendrier import Calendrier_HPHC
 import pyomo.environ as pyo
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ class Utilisateur:
     consumers   : List[Consumer_interface]
     producers   : List[Producer_interface]
     production  : Dict[int, float]
-    calendrierHPHC   : Calendrier
+    calendrierHPHC   : Calendrier_HPHC
 
     def __init__(self, id, cohorte_id) -> None:
         self.id = id
@@ -41,7 +41,7 @@ class Utilisateur:
         to_return = {key: sum(p[key] for p in productions) for key in productions[0].keys()}
         self.production = to_return
 
-    def set_calendrier(self, calendrier: Calendrier) -> None:
+    def set_calendrier(self, calendrier: Calendrier_HPHC) -> None:
         self.calendrierHPHC = calendrier
 
     def create_block_submodel(self, user_block: pyo.Block, steps: pyo.RangeSet, calculationParams: CalculationParams, solar_prevision: Dict[int, float]) -> None:        
