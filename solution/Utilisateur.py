@@ -80,8 +80,7 @@ class Utilisateur:
         for c, consumer in enumerate(self.consumers):
             model_consumer = user_block.consumers[c]
             decisions : List[int] = [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]
-            # print(decisions, [pyo.value(model_consumer.decisions[j]) for j in model_consumer.decision_set])
-            consumer.get_consumption_curve(calculationParams, decisions)
+            consumption += consumer.get_consumption_curve(calculationParams, decisions)
 
         for i, k in zip(range(calculationParams.simulation_size), self.production.keys()):
             consumption[i] = min(0, self.production[k] - consumption[i])

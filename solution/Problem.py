@@ -116,8 +116,7 @@ class Problem():
 		
 		data = np.zeros((self.calculationParams.simulation_size,), np.float64)
 		x_data = np.arange(self.calculationParams.simulation_size)
-		ACC_production = np.array(list(self.cohorte_balance.values()))# // (1000 * n_users)#TODO remove (for visibility purposes)
-		# plt.bar(x=x_data, height=ACC_production, color = "#173C74", width=1, zorder=0)
+		ACC_production = np.array(list(self.cohorte_balance.values()))
 		plt.plot(x_data, ACC_production, color="#173C74")
 		plt.plot(np.arange(self.calculationParams.simulation_size), np.array([0]*self.calculationParams.simulation_size), "black", linewidth=.1)
 		for i, utilisateur in enumerate(self.utilisateurs):
@@ -141,7 +140,7 @@ class Problem():
 		fig = plt.figure()
 		grid = fig.add_gridspec(y, x)#, hspace = 0, wspace = 0)
 		axs = grid.subplots(sharex=True, sharey=True)
-		ACC_production = np.array(list(self.cohorte_balance.values()))# // 1000#TODO remove (for visibility purposes)
+		ACC_production = np.array(list(self.cohorte_balance.values()))
 		for i, utilisateur in enumerate(self.utilisateurs):
 			utilisateur.show_user_consumptions(plt_ax=axs[i//x, i%x], user_block=self.model.utilisateurs[i], ACC_production=ACC_production, calculationParams=self.calculationParams)
 		fig.legend(handles=[Line2D([0],[0], color="#008440", lw=8, label="Production"),
