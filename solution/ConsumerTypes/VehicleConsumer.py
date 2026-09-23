@@ -95,7 +95,7 @@ class VehicleConsumer(Consumer_interface):
 
 	def _get_decisions(self, calculationParams : CalculationParams, launch_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		launch_step = synchronise(launch_timestamps[0])
+		launch_step = (launch_timestamps[0] - calculationParams.begin) // calculationParams.step_size_s
 		toReturn[launch_step] = 1
 		return toReturn
 	

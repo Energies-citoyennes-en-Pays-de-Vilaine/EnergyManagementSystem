@@ -119,8 +119,8 @@ class Utilisateur:
         for c, consumer in enumerate(self.consumers):
             model_consumer = user_block.consumers[c]
             curent_data = np.zeros((calculationParams.get_simulation_size(),), np.float64)
-            decisions = [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]
-            curent_data += consumer.get_consumption_curve(calculationParams, decisions)
+            activation_timestamps = [j for j in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[j]),5)]
+            curent_data += consumer.get_consumption_curve(calculationParams, activation_timestamps)
             data.append(curent_data)
             plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = curent_data, bottom=sum(data[0:c]), color=yellows(c), zorder=2, width=.4)#, width=.4
         plt_ax.bar(x = np.arange(calculationParams.simulation_size), height = [min(0,list(self.get_production().values())[i] - sum(data)[i]) for i in range(calculationParams.simulation_size)], color="#C44536", width=.5, zorder=2)

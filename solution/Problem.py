@@ -95,7 +95,7 @@ class Problem():
 			# print("conso:",  [pyo.value(user_block.E_ACI[t]) + pyo.value(user_block.E_ACC[t]) + pyo.value(user_block.E_IMP[t]) for t in steps])
 			for c, consumer in enumerate(utilisateur.consumers):
 				model_consumer = self.model.utilisateurs[u].consumers[c]
-				decisions = [j for j, d in enumerate(model_consumer.decision_set) if round(pyo.value(model_consumer.decisions[d]),5)]
+				decisions = [d for d in model_consumer.decision_set if round(pyo.value(model_consumer.decisions[d]),5)]
 				problem_decisions.append(
 					{
 						"id"			: consumer.id,

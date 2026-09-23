@@ -103,9 +103,9 @@ def get_utilisateurs(timestamp: int, calculationParams: CalculationParams, cohor
 	for u, p in panneaux_photovoltaiques:
 		to_return[u].add_producer(p)
 
-	# ballon_ecs = get_ECS(timestamp, calculationParams, cohorte_id)
-	# for u, b in ballon_ecs:
-	# 	to_return[u].add_consumer(b)
+	ballon_ecs = get_ECS(timestamp, calculationParams, cohorte_id)
+	for u, b in ballon_ecs:
+		to_return[u].add_consumer(b)
 
 	calendriers_hphc = get_calendriers(cohorte_id)
 	for u, c in calendriers_hphc:

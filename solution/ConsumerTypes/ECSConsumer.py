@@ -75,7 +75,7 @@ class ECSConsumer(Consumer_interface):
 	
 	def _get_decisions(self, calculationParams: CalculationParams, launch_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		launch_step = synchronise(launch_timestamps[0])
+		launch_step = (launch_timestamps[0] - calculationParams.begin) // calculationParams.step_size_s
 		end_step = min(launch_step + self.tp["steps_count"] + 8, calculationParams.simulation_size - 1)
 		self.total_duration = end_step - launch_step
 		toReturn[launch_step: end_step] = 1

@@ -37,8 +37,8 @@ class SumConsumer(Consumer_interface):
 
 	def calcul_pourcentage(self, calculationParams: CalculationParams) -> None:
 		zone_passe, zone_futur = self.calendrier.get_past_confort_hours(calculationParams.begin), self.calendrier.get_futur_confort_hours(calculationParams.begin)
-		self.pourcentage_eco_futur = self.pourcentage_eco_consigne + (self.pourcentage_eco_consigne * zone_passe - self.nb_lancement_24h_precedent) / zone_passe
-		self.nb_lancement_48h_suivant = self.pourcentage_eco_futur * zone_futur
+		self.nb_lancement_48h_suivant = min(zone_futur, self.pourcentage_eco_consigne * (zone_passe + zone_futur) - self.nb_lancement_24h_precedent)
+		# print(f"%:{self.pourcentage_eco_consigne}, _-:{zone_passe}, n-:{self.nb_lancement_24h_precedent}, _+:{zone_futur}, n+:{self.nb_lancement_48h_suivant}")
 
 	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
 		filter_calendrier = lambda m, x: self.calendrier.is_confort_timestamp(x)
@@ -52,7 +52,7 @@ class SumConsumer(Consumer_interface):
 	
 	def _get_decisions(self, calculationParams : CalculationParams, activation_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		activation_steps = list(map(synchronise, activation_timestamps))
+		activation_steps = list(map((lambda x: (x - calculationParams.begin) // calculationParams.step_size_s), activation_timestamps))
 		for step in activation_steps:
 			toReturn[step] = 1
 		return toReturn
@@ -62,14 +62,15 @@ class SumConsumer(Consumer_interface):
 		#TODO evolution future, estimer les consommations en fonction de la temperature exterieure
 
 	def _get_consumption_curve(self, calculationParams : CalculationParams, decisions : List[int]):
-		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)
-		for index, decision in enumerate(decisions):
-			toReturn[index] = self.conso_low if decision == 0 else self.conso_high
+		toReturn = np.full((calculationParams.simulation_size,), self.conso_low, dtype=np.int64)
+		for index, timestamp in enumerate(range(calculationParams.begin, calculationParams.end + 1, calculationParams.step_size_s)):
+			if timestamp in decisions:
+				toReturn[index] = self.conso_high
 		return toReturn
 	
 	def _get_consumption_t(self, consumerBlock: pyo.Block, calculationParams: CalculationParams, step_timestamp: int) -> pyo.Var:
 		to_return = self.conso_low
-		if step_timestamp in consumerBlock.decisions:
+		if step_timestamp in consumerBlock.decision_set:
 			to_return += consumerBlock.decisions[step_timestamp] * (self.conso_high - self.conso_low)
 		return to_return 
 
