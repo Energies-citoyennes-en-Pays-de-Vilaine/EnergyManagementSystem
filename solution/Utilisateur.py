@@ -24,6 +24,7 @@ class Utilisateur:
         self.consumers = []
         self.producers = []
         self.production = {}
+        self.calendrierHPHC = Calendrier_HPHC([])
 
     def add_consumer(self, machine: Consumer_interface) -> None:
         self.consumers.append(machine)
