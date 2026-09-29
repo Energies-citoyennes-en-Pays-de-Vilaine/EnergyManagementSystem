@@ -33,7 +33,7 @@ def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[
 		min_conso_timestamp, max_conso_timestamp = times[np.where(meteo_energie == min_conso)[0][0]], times[np.where(meteo_energie == max_conso)[0][0]]
 
 		for i in range(len(times)):
-			queries.append(EMSEnergyWeather(times[i], int(meteo_energie[i]), cohorte_id).get_create_or_update_in_table_str("p_c_with_flexible_consumption"))
+			queries.append(EMSEnergyWeather(0, data_timestamp=times[i], power=int(meteo_energie[i]), cohorte=cohorte_id).get_create_or_update_in_table_str("p_c_with_flexible_consumption"))
 
 		queries.append(EMSRunInfo(round_start_timestamp, run_time_ms, len(utilisateurs), min_conso_timestamp, float(min_conso), max_conso_timestamp, float(max_conso), cohorte_id).get_create_or_update_in_table_str("ems_run_info"))
 		execute_queries(db_credentials["EMS_SORTIE"], queries)

@@ -6,21 +6,24 @@ class DBAnnotation():
 	is_db_primary    : bool
 	is_db_nullable   : bool
 	is_db_list       : bool
+	is_composite_unique : bool
 	db_element_count : int
 	def __init__(self) -> None:
 		self.is_db_primary  = False
 		self.is_db_nullable = False
 		self.is_db_list     = False
+		self.is_composite_unique = False
 		db_element_count    = 0
 
 
-def create_DB_Annotation(*, is_primary = False, is_nullable = False, is_db_list = False, db_element_count = 0):
+def create_DB_Annotation(*, is_primary = False, is_nullable = False, is_db_list = False, db_element_count = 0, is_composite_unique = False):
 	class toReturn(DBAnnotation):
 		pass
 	toReturn.is_db_nullable   = is_nullable
 	toReturn.is_db_primary    = is_primary
 	toReturn.is_db_list       = is_db_list
 	toReturn.db_element_count = db_element_count 
+	toReturn.is_composite_unique = is_composite_unique
 	return toReturn
 class PrimaryAutoInt(int):
 	pass
@@ -32,6 +35,9 @@ def serializableThroughDatabase(clas):
 		for key in annotations.keys():
 			base_type = annotations[key]
 			dbannotation = DBAnnotation()
+			unique_components = []
+			if dbannotation.is_composite_unique:
+				unique_components.append(key)
 			if type(base_type) == typing._UnionGenericAlias:
 				dbannotation = base_type.__args__[1]
 				base_type = base_type.__args__[0]
@@ -60,6 +66,8 @@ def serializableThroughDatabase(clas):
 						args.append(f"{key}_{i} REAL    {'NOT NULL' if not dbannotation.is_db_nullable else ''}")
 					else:
 						print(annotations[key])
+		if len(unique_components) > 1:
+			args.append(f"CONSTRAINT {name}_unique UNIQUE ({', '.join(unique_components)})")
 			
 		return (f" CREATE TABLE IF NOT EXISTS {schema+("." if schema != "" else "")}{name} ({', '.join(args)});")
 
@@ -182,12 +190,15 @@ def serializableThroughDatabase(clas):
 		annotations = clas.__annotations__
 		primary_key   = ""
 		primary_value = -1
+		unique_components = []
 		for key in annotations.keys():
 			base_type = annotations[key]
 			dbannotation = DBAnnotation()
 			if type(base_type) == typing._UnionGenericAlias:
 				dbannotation = base_type.__args__[1]
 				base_type = base_type.__args__[0]
+			if dbannotation.is_composite_unique:
+				unique_components.append(key)
 			if (base_type == PrimaryAutoInt or dbannotation.is_db_primary):
 				primary_key = key
 				primary_value = self.__getattribute__(key)
@@ -228,6 +239,8 @@ def serializableThroughDatabase(clas):
 						values.append('1' if self.__getattribute__(key)[i] == True else '0')
 					else:
 						print(annotations[key])
+		if len(unique_components)>1:
+			return (f"INSERT INTO {schema+("." if schema != "" else "")}{name} ({', '.join(args)}) VALUES ({', '.join(['%s' for s in args])}) ON CONFLICT ({', '.join(unique_components)}) DO UPDATE SET {', '.join([s + '=%s' for s in args])};", values + values) 
 		return (f"INSERT INTO {schema+("." if schema != "" else "")}{name} ({', '.join([primary_key] + args)}) VALUES ({', '.join(['%s' for s in [primary_key] + args])}) ON CONFLICT ({primary_key}) DO UPDATE SET {', '.join([s + '=%s' for s in args])};", [primary_value] + values + values)
 
 
