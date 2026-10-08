@@ -32,15 +32,15 @@ def serializableThroughDatabase(clas):
 	def get_create_table_str(name, schema:str = ""):
 		args = []
 		annotations = clas.__annotations__
+		unique_components = []	
 		for key in annotations.keys():
 			base_type = annotations[key]
 			dbannotation = DBAnnotation()
-			unique_components = []
-			if dbannotation.is_composite_unique:
-				unique_components.append(key)
 			if type(base_type) == typing._UnionGenericAlias:
 				dbannotation = base_type.__args__[1]
 				base_type = base_type.__args__[0]
+			if dbannotation.is_composite_unique:
+				unique_components.append(key)
 			if not dbannotation.is_db_list:
 				if (base_type == PrimaryAutoInt):
 					args.append(f"{key} SERIAL PRIMARY KEY")
@@ -69,7 +69,7 @@ def serializableThroughDatabase(clas):
 		if len(unique_components) > 1:
 			args.append(f"CONSTRAINT {name}_unique UNIQUE ({', '.join(unique_components)})")
 			
-		return (f" CREATE TABLE IF NOT EXISTS {schema+("." if schema != "" else "")}{name} ({', '.join(args)});")
+		return (f" CREATE TABLE IF NOT EXISTS {(schema if schema != "" else "public")}.{name} ({', '.join(args)});")
 
 	def get_append_in_table_str(self, name):
 		args = []

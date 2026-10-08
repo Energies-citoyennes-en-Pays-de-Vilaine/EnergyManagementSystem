@@ -3,36 +3,47 @@
 set -e
 CONFIG_FILENAME="EMS_systemd_config.txt"
 CONFIG_FOLDER="/etc/ems"
-HAS_TO_INSTALL_ANACONDA=1
-HAS_TO_UPDATE=1
-HAS_TO_INSTALL_POSTGRES=1
-HAS_TO_DROP_DATABASE=0
+
+##Options
+HAS_TO_INSTALL_ANACONDA=0
+HAS_TO_UPDATE=0
+HAS_TO_INSTALL_POSTGRES=0
+HAS_TO_DROP_DATABASE=1
 HAS_TO_CREATE_DATABASE=1
+HAS_TO_DROP_OUT_DATABASE=1
 HAS_TO_CREATE_OUT_DATABASE=1
-HAS_TO_INSTALL_MILP=1
+HAS_TO_INSTALL_MILP=0
 HAS_TO_GRANT_PERMISSIONS=1
-HAS_TO_CREATE_SERVICES=1
+HAS_TO_CREATE_SERVICES=0
 HAS_TO_INSTALL_PREDICTION_HISTORIZER=0
 
-EMS_DB="ems_db"
-EMS_USER="ems"
+##Paramètres base de données
 EMS_DB_CONFIG_FILENAME="db_credentials.py"
+#EMS
+EMS_DB="test_meteo"
+EMS_USER="ems_meteo_user"
 
-EMS_HISTO_PASS="0"
-#if EMS_HISTO_PASS is exactly '0', then it will be changed
-EMS_HISTO_USER="$EMS_USER"
+#EMS HISTO
+#if EMS_HISTO_PASS is exactly '0', then a new password will be generated
 EMS_HISTO_HOST="localhost"
 EMS_HISTO_DB="$EMS_DB"
+EMS_HISTO_USER="$EMS_USER"
+EMS_HISTO_PASS="$EMS_DB"
 
-ELFE_OUT_PASS="pass"
-ELFE_OUT_USER="testeu"
+#ELFE OUT
 ELFE_OUT_HOST="localhost"
-ELFE_OUT_DB="ems_sortie_test"
-COMMAND_USER="testusr"
+ELFE_OUT_DB="test_meteo_out"
+ELFE_OUT_USER="ems_meteo_out_user" #user with rights to create OUT_DB
+ELFE_OUT_PASS="PASS"
+COMMAND_USER="ems_meteo_out_user" #ems user used to acces OUT_DB
 #next line comes from internal value from EMS, do not modify
 EMS_RESULT_TABLE="result"
 
-ELFE_DB="elfe_coordo"
+#ELFE
+ELFE_HOST="localhost"
+ELFE_DB="test_meteo_coordo"
+ELFE_USER="ems_meteo_elfe_user"
+ELFE_PASS="PASS"
 ELFE_OPTIONS="-c search_path=$ELFE_DB,public"
 
 EMSFOLDER="$(echo $PWD)"
@@ -89,6 +100,11 @@ fi
 
 if [ "$HAS_TO_CREATE_OUT_DATABASE" -ne 0 ]
 	then
+	if [ "$HAS_TO_DROP_OUT_DATABASE" -ne 0 ]
+		then
+			echo "dropping out database"
+			su - postgres -c "export PGPASSWORD=\"$ELFE_OUT_PASS\"; psql -h $ELFE_OUT_HOST -U $ELFE_OUT_USER -c \"DROP DATABASE $ELFE_OUT_DB;\""
+		fi
 	echo "creating output database"
 	su - postgres -c "export PGPASSWORD=\"$ELFE_OUT_PASS\"; psql -h $ELFE_OUT_HOST -d postgres -U $ELFE_OUT_USER -c \"CREATE DATABASE $ELFE_OUT_DB WITH OWNER $ELFE_OUT_USER;\""
 	if [ "$HAS_TO_GRANT_PERMISSIONS" -ne 0 ]
@@ -112,12 +128,14 @@ if [ "$HAS_TO_INSTALL_POSTGRES" -ne 0 ] || [ "$HAS_TO_CREATE_DATABASE" -ne 0 ]
 	POSTGRES_PASSWORD="$(LC_ALL=C tr -dc '[:alnum:]' < /dev/urandom | head -c20)"
 	echo "setting encryption method for password as postgres-s default is really bad"
 	su - postgres -c "psql -c \"SET password_encryption  = 'scram-sha-256';\"" >/dev/null
+	
 	echo "creating user for EMS ($EMS_USER)"
 	su - postgres -c "psql -c \"CREATE USER $EMS_USER WITH ENCRYPTED PASSWORD '$POSTGRES_PASSWORD';\"">/dev/null
 	echo "creating database for EMS ($EMS_DB)"
 	su - postgres -c "psql -c \"CREATE DATABASE $EMS_DB WITH OWNER $EMS_USER;\"">/dev/null
 	echo "copying the db_config file to ($EMS_DB_CONFIG_FILENAME) to populate it with the EMS password"
 	cp "$EMSFOLDER/credentials/db_credentials_example.py" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
+	
 	echo "setting up EMS config for EMS inner database"
 	sed -i "s/myEMSSuperHost/localhost/g" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
 	sed -i "s/myEMSSuperDatabase/$EMS_DB/g" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
@@ -129,6 +147,7 @@ if [ "$HAS_TO_INSTALL_POSTGRES" -ne 0 ] || [ "$HAS_TO_CREATE_DATABASE" -ne 0 ]
 	sed -i "s/myOutSuperDatabase/$ELFE_OUT_DB/g" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
 	sed -i "s/myOutSuperUser/$ELFE_OUT_USER/g" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
 	sed -i "s/myOutSuperPassword/$ELFE_OUT_PASS/g" "$EMSFOLDER/credentials/$EMS_DB_CONFIG_FILENAME"
+	
 	if [ "$HAS_TO_INSTALL_PREDICTION_HISTORIZER" -ne 0 ]
 	then
 		echo "setting up EMS config for EMS historizer database"
