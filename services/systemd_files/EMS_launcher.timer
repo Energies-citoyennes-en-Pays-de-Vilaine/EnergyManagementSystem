@@ -1,8 +1,8 @@
 [Unit]
 Description="timer for the EMS calculation service"
-Requires=EMS_launcher.service
+Requires=EMS_launcher_cohorte.service
 [Timer]
-Unit=EMS_launcher.service
+Unit=EMS_launcher_cohorte.service
 OnCalendar=*-*-* *:14/15:30
 AccuracySec=20s
 

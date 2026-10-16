@@ -1,8 +1,9 @@
 [Unit]
 Description="timer for the prevision getter service"
-Requires=prevision_getter.service
+Requires=prevision_getter_cohorte.service
+
 [Timer]
-Unit=prevision_getter.service
+Unit=prevision_getter_cohorte.service
 OnCalendar=*-*-* *:14/15:00
 AccuracySec=20s
 

@@ -8,14 +8,15 @@ CONFIG_FOLDER="/etc/ems"
 HAS_TO_INSTALL_ANACONDA=0
 HAS_TO_UPDATE=0
 HAS_TO_INSTALL_POSTGRES=0
-HAS_TO_DROP_DATABASE=1
-HAS_TO_CREATE_DATABASE=1
-HAS_TO_DROP_OUT_DATABASE=1
-HAS_TO_CREATE_OUT_DATABASE=1
+HAS_TO_DROP_DATABASE=0
+HAS_TO_CREATE_DATABASE=0
+HAS_TO_DROP_OUT_DATABASE=0
+HAS_TO_CREATE_OUT_DATABASE=0
 HAS_TO_INSTALL_MILP=0
-HAS_TO_GRANT_PERMISSIONS=1
-HAS_TO_CREATE_SERVICES=0
+HAS_TO_GRANT_PERMISSIONS=0
+HAS_TO_CREATE_SERVICES=1
 HAS_TO_INSTALL_PREDICTION_HISTORIZER=0
+COHORTE_LIST=("ACI_1" "ACC_1")
 
 ##Paramètres base de données
 EMS_DB_CONFIG_FILENAME="db_credentials.py"
@@ -103,10 +104,13 @@ if [ "$HAS_TO_CREATE_OUT_DATABASE" -ne 0 ]
 	if [ "$HAS_TO_DROP_OUT_DATABASE" -ne 0 ]
 		then
 			echo "dropping out database"
-			su - postgres -c "export PGPASSWORD=\"$ELFE_OUT_PASS\"; psql -h $ELFE_OUT_HOST -U $ELFE_OUT_USER -c \"DROP DATABASE $ELFE_OUT_DB;\""
+			su - postgres -c "export PGPASSWORD=\"$ELFE_OUT_PASS\"; psql -h $ELFE_OUT_HOST -d postgres -U $ELFE_OUT_USER -c \"DROP DATABASE $ELFE_OUT_DB;\""
 		fi
 	echo "creating output database"
 	su - postgres -c "export PGPASSWORD=\"$ELFE_OUT_PASS\"; psql -h $ELFE_OUT_HOST -d postgres -U $ELFE_OUT_USER -c \"CREATE DATABASE $ELFE_OUT_DB WITH OWNER $ELFE_OUT_USER;\""
+	echo "creating tables for EMS output database"
+	python -m database.EMS_OUT_db_creator
+
 	if [ "$HAS_TO_GRANT_PERMISSIONS" -ne 0 ]
 		then
 		echo "granting database connection permissions to user $COMMAND_USER"
@@ -170,8 +174,7 @@ if [ "$HAS_TO_INSTALL_POSTGRES" -ne 0 ] || [ "$HAS_TO_CREATE_DATABASE" -ne 0 ]
 
 	echo "creating tables for EMS inner database"
 	python -m database.EMS_db_creator
-	echo "creating tables for EMS output database"
-	python -m database.EMS_OUT_db_creator
+
 	if [ "$HAS_TO_INSTALL_PREDICTION_HISTORIZER" -ne 0 ]
 	then
 		echo "creating history database"
@@ -199,17 +202,33 @@ mv $CONFIG_FILENAME $CONFIG_FOLDER/$CONFIG_FILENAME
 if [ "$HAS_TO_CREATE_SERVICES" -ne 0 ]
 	then
 	echo "copying the services"
-	for f in $(ls "$EMSFOLDER/services/systemd_files"); do
-		cp "$EMSFOLDER/services/systemd_files/$f" "/etc/systemd/system"
+	for f in $(ls "$EMSFOLDER/services/systemd_files")
+	do
+		if [[ "$f" == "EMS_launcher"* ]] || [[ "$f" == "prevision_getter"* ]]
+		then 
+			for cohorte in "${COHORTE_LIST[@]}"
+			do
+				current_filepath=$(echo "/etc/systemd/system/$f" | sed "s/\./_$cohorte\./");
+				cp "$EMSFOLDER/services/systemd_files/$f" "$current_filepath"
+				sed -i "s/cohorte/$cohorte/g" "$current_filepath"
+			done
+		else
+			cp "$EMSFOLDER/services/systemd_files/$f" "/etc/systemd/system"
+		fi
 	done
+
 	echo "installing services"
 	echo "installing ECS acquisition service"
 	systemctl enable ECS_acquisition.timer
 	systemctl start ECS_acquisition.timer
 
 	echo "installing EMS launcher service"
-	systemctl enable EMS_launcher.timer
-	systemctl start EMS_launcher.timer
+	for cohorte in "${COHORTE_LIST[@]}"
+	do
+		current_timer=$(echo "EMS_launcher.timer" | sed "s/\./_$cohorte\./")
+		systemctl enable $current_timer
+		systemctl start $current_timer
+	done
 
 	echo "installing learning cleaner service"
 	systemctl enable learning_cleaner.timer
@@ -232,8 +251,12 @@ if [ "$HAS_TO_CREATE_SERVICES" -ne 0 ]
 	systemctl start Meteo_concept.timer
 
 	echo "installing zabbix prevision getter"
-	systemctl enable prevision_getter.timer
-	systemctl start prevision_getter.timer
+		for cohorte in "${COHORTE_LIST[@]}"
+	do
+		current_timer=$(echo "prevision_getter.timer" | sed "s/\./_$cohorte\./")
+		systemctl enable $current_timer
+		systemctl start $current_timer
+	done
 
 	if [ "$HAS_TO_INSTALL_PREDICTION_HISTORIZER" -ne 0 ]
 	then
