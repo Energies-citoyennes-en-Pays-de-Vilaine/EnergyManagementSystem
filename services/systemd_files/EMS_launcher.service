@@ -1,6 +1,6 @@
 [Unit]
 Description="EMS calculation service"
-Wants=EMS_launcher.timer
+Wants=EMS_launcher_cohorte.timer
 
 [Service]
 Type=oneshot
