@@ -47,7 +47,7 @@ if __name__ == "__main__":
 	else:
 		timestamp = get_timestamp()
 		round_start_timestamp = get_round_timestamp()
-	cohorte_balance = get_cohorte_balance(round_start_timestamp)
+	cohorte_balance = get_cohorte_balance(round_start_timestamp, cohorte_id)
 	cohorte_balance_dict = {t[0]:t[1] for t in cohorte_balance}
 	# show_productions(round_start_timestamp)
 	solar_expected_production = get_production_solaire(round_start_timestamp)

@@ -73,14 +73,17 @@ class EMSDeviceTemperatureData():
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class EMSPowerCurveData():
-	data_timestamp             : Union[int, create_DB_Annotation(is_primary=True)]
+	id						   : PrimaryAutoInt
+	data_timestamp             : Union[int, create_DB_Annotation(is_composite_unique=True)]
 	power                      : int
+	cohorte					   : Union[str, create_DB_Annotation(is_composite_unique=True)]
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
 class EMSNormalPowerCurveData():
 	data_timestamp             : Union[int, create_DB_Annotation(is_primary=True)]
 	power                      : float
+	#Possible prevision normale par cohorte (Questembert)
 
 @serializableThroughDatabase
 @dataclass(init=True, repr=True)
