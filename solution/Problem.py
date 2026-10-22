@@ -101,7 +101,7 @@ class Problem():
 						"id"			: consumer.id,
 						"reocurring"	: consumer.is_reocurring,
 						"is_ECS"		: type(consumer) == ECSConsumer,
-						"decisions"		: consumer.get_decisions(self.calculationParams, decisions).tolist(),
+						"decisions"		: consumer.get_decisions(self.calculationParams, decisions),
 						"consumer"		: consumer
 					})
 		return problem_decisions

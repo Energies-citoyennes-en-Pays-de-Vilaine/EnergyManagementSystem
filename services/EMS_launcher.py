@@ -15,6 +15,7 @@ from logger.run_conditions_logger import log_run_conditions_to_file
 from bodge.ECS_transmitter import get_ecs_results_to_transmit
 from time import time
 from config.config import Config, get_config
+from typing import Dict, List
 import traceback
 import sys
 import numpy as np
@@ -81,20 +82,37 @@ if __name__ == "__main__":
 		decisions = problem.get_decisions()	
 		results = []
 		results_ECS = []
+		temp_result_ECS : Dict[str: List[EMSResult]] = {}
+		
 		for decision in decisions:
 			result_type = 0 if decision["reocurring"] == False else 1
-			consumer : Consumer_interface = decision["consumer"]
 			if decision["is_ECS"] == False:
-				result = EMSResult(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, decision["decisions"] )
+				consumer : Consumer_interface = decision["consumer"]
+				result = EMSResult(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, decision["decisions"].tolist())
 				results.append(result)
 			else:
 				ecs_consumer : ECSConsumer = decision["consumer"]
-				result = EMSResultEcs(0, round_start_timestamp, decision["id"], result_type, consumer.consumer_machine_type, ecs_consumer.get_total_duration(), decision["decisions"])
-				results_ECS.append(result)
+				result_ecs = EMSResultEcs(0, round_start_timestamp, decision["id"], result_type, ecs_consumer.consumer_machine_type, ecs_consumer.get_total_duration(), decision["decisions"].tolist())
+				results_ECS.append(result_ecs)
+				
+				machine_id = decision["id"]
+				result = EMSResult(0, round_start_timestamp, machine_id, result_type, ecs_consumer.consumer_machine_type, decision["decisions"])
+				if machine_id not in temp_result_ECS.keys():
+					temp_result_ECS[machine_id] = [result]
+				else:
+					temp_result_ECS[machine_id].append(result)
 		
+		for decision_list in temp_result_ECS.values() :
+			result : EMSResult = decision_list[0]
+			other_results : List[EMSResult] = decision_list[1:]
+			for r in other_results:
+				result.decisions += r.decisions
+			result.decisions = result.decisions.tolist()
+			results.append(result)
+
 		queries_ECS = [result.get_append_in_table_str("result_ecs") for result in results_ECS]
 		execute_queries(db_credentials["EMS"], queries_ECS)
-		results += get_ecs_results_to_transmit(round_start_timestamp, sim_params)
+		
 		queries = [result.get_append_in_table_str("result") for result in results]
 		execute_queries(db_credentials["EMS"], queries)
 		if ("EMS_SORTIE" in db_credentials):
