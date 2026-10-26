@@ -26,8 +26,8 @@ class ECSConsumer(Consumer_interface):
 	def __init__(self, id, last_consumption_Wh, start_time, end_time, power_W, volume_litre, calculationParams, consumer_machine_type=-1):
 		self.id = id
 		self.last_consumption_Wh = last_consumption_Wh
-		self.start_time = start_time
-		self.end_time = end_time #machine MUST have finished BEFORE end_time
+		self.start_time = synchronise(start_time)
+		self.end_time = synchronise(end_time) #machine MUST have finished BEFORE end_time
 		self.machine_count = 1
 		self.has_base_consumption = False
 		self.is_reocurring = False
