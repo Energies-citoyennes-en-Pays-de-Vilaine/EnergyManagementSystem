@@ -132,7 +132,7 @@ def get_calendriers(cohorte_id = COHORTE_ID) -> List[Tuple[str, Calendrier_HPHC]
 
 def get_cohorte_balance(timestamp: int, cohorte_id: str) -> List[Tuple[int, float]]:
 	config = get_config()
-	expected_power = fetch(db_credentials["EMS"], ("SELECT * FROM prevision_equilibre WHERE data_timestamp >= %s AND cohorte = %s;", [timestamp, cohorte_id]))
+	expected_power = fetch(db_credentials["EMS"], ("SELECT pe.data_timestamp, pe.power FROM prevision_equilibre AS pe WHERE data_timestamp >= %s AND cohorte = %s;", [timestamp, cohorte_id]))
 	expected_power = sorted(expected_power, key=itemgetter(0))
 	items_to_add = max(0, config.step_count - len(expected_power))
 	list_to_add = [(timestamp + (len(expected_power) + i) * config.delta_time_simulation_s, 0) for i in range(items_to_add)]

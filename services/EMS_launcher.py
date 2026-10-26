@@ -12,7 +12,7 @@ from solution.Consumer_interface import Consumer_interface
 from solution.ConsumerTypes.ECSConsumer import ECSConsumer
 from solution.Utilisateur import Utilisateur
 from logger.run_conditions_logger import log_run_conditions_to_file
-from bodge.ECS_transmitter import get_ecs_results_to_transmit
+# from bodge.ECS_transmitter import get_ecs_results_to_transmit
 from time import time
 from config.config import Config, get_config
 from typing import Dict, List
@@ -22,13 +22,11 @@ import numpy as np
 
 conf : Config = get_config()
 ONE_HOUR_SEC = 3600
-# cohorte_id = "ACI_1"
 
 def write_energy_weather(problem_consumption: np.ndarray, cohorte_balance: List[Tuple[int, float]], run_time_ms: int) -> None:
 	if ("EMS_SORTIE" in db_credentials):
-		queries = []
-		# print("problem_consumption\n", problem_consumption)
-		meteo_energie = problem_consumption + np.array(cohorte_balance)[:,1]
+		queries = []		
+		meteo_energie = problem_consumption + np.array(cohorte_balance, np.float64)[:,1]
 		times = sim_params.get_time_array()
 		min_conso, max_conso = np.min(meteo_energie), np.max(meteo_energie)
 		min_conso_timestamp, max_conso_timestamp = times[np.where(meteo_energie == min_conso)[0][0]], times[np.where(meteo_energie == max_conso)[0][0]]
