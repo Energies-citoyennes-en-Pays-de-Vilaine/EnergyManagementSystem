@@ -16,28 +16,27 @@ class SumConsumer(Consumer_interface):
 	conso_low					: float
 	conso_high					: float
 	pourcentage_eco_consigne	: float
-	nb_lancement_24h_precedent	: int
+	lancement_45m_precedent		: List[int]
 	calendrier					: Calendrier_confort
-	# calculationParams			: CalculationParams
 
-	def __init__(self, id, conso_low: float, conso_high: float, pourcentage_eco: int, calendrier: Calendrier_confort, calculationParams: CalculationParams, nb_lancement_24h_precedent: int = 0, consumer_machine_type = -1):
+	def __init__(self, id, conso_low: float, conso_high: float, pourcentage_eco: int, calendrier: Calendrier_confort, lancement_45m_precedent: List[int], consumer_machine_type = -1):
 		self.id = id
 		self.conso_low = conso_low
 		self.conso_high = conso_high
 		self.pourcentage_eco_consigne = pourcentage_eco / 100
 		self.calendrier = calendrier
-		self.nb_lancement_24h_precedent = nb_lancement_24h_precedent
+		self.lancement_45m_precedent = lancement_45m_precedent
 		self.consumer_machine_type = consumer_machine_type
 		self.has_base_consumption = False
 		self.is_reocurring = False
-		# self.calculationParams = calculationParams
 
 	def __repr__(self):
-		return f"id:{self.id}, %:{self.pourcentage_eco_consigne}, low:{self.conso_low}, high:{self.conso_high},\n calendrier:{self.calendrier},\n historique:{self.nb_lancement_24h_precedent}"
+		return f"id:{self.id}, %:{self.pourcentage_eco_consigne}, low:{self.conso_low}, high:{self.conso_high},\n calendrier:{self.calendrier},\n historique:{self.lancement_45m_precedent}"
 
 	def calcul_pourcentage(self, calculationParams: CalculationParams) -> None:
-		zone_passe, zone_futur = self.calendrier.get_past_confort_hours(calculationParams.begin), self.calendrier.get_futur_confort_hours(calculationParams.begin)
-		self.nb_lancement_48h_suivant = min(zone_futur, self.pourcentage_eco_consigne * (zone_passe + zone_futur) - self.nb_lancement_24h_precedent)
+		return
+	# 	zone_passe, zone_futur = self.calendrier.get_past_confort_hours(calculationParams.begin), self.calendrier.get_futur_confort_hours(calculationParams.begin)
+	# 	self.nb_lancement_48h_suivant = min(zone_futur, self.pourcentage_eco_consigne * (zone_passe + zone_futur) - self.lancement_45m_precedent)
 		# print(f"%:{self.pourcentage_eco_consigne}, _-:{zone_passe}, n-:{self.nb_lancement_24h_precedent}, _+:{zone_futur}, n+:{self.nb_lancement_48h_suivant}")
 
 	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
@@ -46,9 +45,37 @@ class SumConsumer(Consumer_interface):
 		consumerBlock.decisions = pyo.Var(consumerBlock.decision_set, domain = pyo.Binary)
 
 	def _create_consumer_constraint(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
-		def percentage_constraint(block: pyo.Block):
-			return sum(block.decisions[i] for i in consumerBlock.decision_set) >= self.nb_lancement_48h_suivant
-		consumerBlock.constraint_percentage = pyo.Constraint(rule = percentage_constraint)
+		periodes_chauffage = self.calendrier.get_confort_periods(calculationParams.begin)
+		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}")
+
+		all_period = []
+		for p in periodes_chauffage:
+			all_period.extend(p)
+		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}\nperiod==timestamps: {all_period == [d for d in consumerBlock.decisions]}")
+		
+		periode_timestamps_dict: Dict[int, List[int]] = {}
+		for periode in periodes_chauffage:
+			for i in range(max(1,len(periode) - 3)):
+				current_periode = periode[i:i+4]
+				periode_timestamps_dict[current_periode[-1]] = current_periode
+		# print(f"periodes:{periodes_chauffage}\ndict:{periode_timestamps_dict}")
+
+		def percentage_constraint(block: pyo.Block, t):
+			if t in periode_timestamps_dict.keys():
+				periode = periode_timestamps_dict[t]
+				periodes_values = [block.decisions[p] for p in periode if p > calculationParams.begin]
+				if len(periodes_values) == 0:
+					return pyo.Constraint.Feasible
+				previous_values = [1 if p in self.lancement_45m_precedent else 0 for p in periode if p <= calculationParams.begin]
+				if len(previous_values) > 0:
+					goal = (self.pourcentage_eco_consigne * len(periode) - max(2, sum(previous_values)))
+				else:
+					goal = self.pourcentage_eco_consigne * len(periode)
+				# print(f"{t=} pv:{periodes_values} >= {goal=}")
+				return sum(periodes_values) >= goal
+			else:
+				return pyo.Constraint.Feasible
+		consumerBlock.constraint_percentage = pyo.Constraint(consumerBlock.decision_set, rule = percentage_constraint)
 	
 	def _get_decisions(self, calculationParams : CalculationParams, activation_timestamps : List[int]) -> np.ndarray:
 		toReturn = np.zeros((calculationParams.simulation_size,), np.int64)

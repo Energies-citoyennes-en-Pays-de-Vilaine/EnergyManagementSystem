@@ -73,14 +73,14 @@ def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) 
 def get_sum_consumer(timestamp : int, calculationParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Tuple[str, SumConsumer]]:
 	elfe_heaters: List[notPilotedHeaterType] = get_elfe_not_piloted_heater(db_credentials["ELFE"], timestamp, cohorte_id)
 	to_return : List[Tuple[str, SumConsumer]] = []
-	previous_launches = get_heater_launches(db_credentials, calculationParams.begin)
+	previous_launches = get_heater_launches(db_credentials, calculationParams.begin - calculationParams.step_size_s * 3)
 	for heater in elfe_heaters:
-		curent_heater_previous_launches = previous_launches[heater.equipement_pilote_ou_mesure_id] if heater.equipement_pilote_ou_mesure_id in previous_launches.keys() else 0
+		curent_heater_previous_launches = previous_launches[heater.equipement_pilote_ou_mesure_id] if heater.equipement_pilote_ou_mesure_id in previous_launches.keys() else []
 		list_jour : List[Jour] = []
 		for day_name in ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]:
 			list_jour.append(Jour(getattr(heater, f"confort_{day_name}"), day_name))
 		calendrier_confort = Calendrier_confort(list_jour)
-		current_sum_consumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, calendrier_confort, calculationParams, curent_heater_previous_launches)
+		current_sum_consumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, calendrier_confort, curent_heater_previous_launches)
 		to_return.append((heater.utilisateur, current_sum_consumer))
 	return to_return
 

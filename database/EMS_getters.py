@@ -11,9 +11,9 @@ def get_equipment_started_last_round(db_credentials: Dict[str: str], timestamp: 
 	result = fetch(db_credentials, (query_formatted, [timestamp]))
 	return [int(i[0]) for i in result]
 
-def get_heater_launches(credentials: Dict[str: str], timestamp: int) -> Dict[int, int]:
+def get_heater_launches(credentials: Dict[str: str], timestamp: int) -> Dict[int, List[int]]:
 	start_timestamp = (datetime.fromtimestamp(timestamp) - timedelta(days=1)).timestamp()
-	query_formatted = (sql.SQL("""	SELECT COUNT(*), result.machine_id,
+	query_formatted = (sql.SQL("""	SELECT first_valid_timestamp, result.machine_id,
 						   			FROM {0} AS result
 						   			WHERE first_valid_timestamp>=%s
 						   			AND machine_type=%s
@@ -24,7 +24,11 @@ def get_heater_launches(credentials: Dict[str: str], timestamp: int) -> Dict[int
 	result = fetch(credentials, query_formatted)
 	to_return = {}
 	if result != None:
-		to_return = {int(id): int(compte) for compte, id in result}
+		for timestamp, id in result:
+			if int(id) not in to_return.keys():
+				to_return[int(id)] = [int(timestamp)]
+			else:
+				to_return[int(id)].append(int(timestamp))
 	return to_return
 
 def get_cycle_filename_for_machine(credentials: Dict[str: str], cycle_name: str, zabbix_id: int) -> str:
