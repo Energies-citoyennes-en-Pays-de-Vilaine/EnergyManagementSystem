@@ -138,7 +138,7 @@ if __name__ == "__main__":
 	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "monday"))
 	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "tuesday"))
 	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "15:00:00" to "15:30:00" - from "22:00:00" to "23:59:59"', "wednesday"))
-	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "15:00:00" to "15:29:59"- from "22:00:00" to "23:59:59"', "thursday"))
+	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "15:00:00" to "15:29:59" - from "15:45:00" to "15:59:59" - from "22:00:00" to "23:59:59"', "thursday"))
 	jours.append(Jour(' - from "12:00:00" to "14:00:00" - from "22:00:00" to "23:59:59"', "friday"))
 	jours.append(Jour('- from "00:00:00" to "23:59:59"', "saturday"))
 	jours.append(Jour('- from "00:00:00" to "23:59:59"', "sunday"))
@@ -148,11 +148,11 @@ if __name__ == "__main__":
 	# print(c)
 	# now_periods = c.get_confort_periods(synchronise(int(datetime.now().timestamp())))
 	# print(list(map(to_timestamp, now_periods)))
-	start = datetime(2026, 11, 4, 14, 0, 0)
-	# start = datetime(2026, 11, 4, 16, 0, 0)
+	# start = datetime(2026, 11, 4, 14, 0, 0)
+	start = datetime(2026, 11, 4, 17, 15, 0)
 	# start = datetime(2026, 11, 5, 16, 0, 0)
 	for i in range(synchronise(start.timestamp()), synchronise((start + timedelta(days=1)).timestamp()+1), 900):
-		a=c.get_confort_periods(i)
+		print(c.get_confort_periods(i))
 	# WE_periods = c.get_confort_periods(int(datetime.combine(date(day=31, month=10, year=2026), time(0,0,0)).timestamp()))
 	# print(list(map(lambda x: (datetime.fromtimestamp(x[0]), datetime.fromtimestamp(x[1])), WE_periods)))
 	

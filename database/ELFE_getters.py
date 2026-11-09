@@ -108,6 +108,7 @@ class notPilotedHeaterType:
 	pourcentage_eco_force 			: int
 	mesures_puissance_elec_id 		: int
 	utilisateur 					: str
+	machine_type_id					: int
 	confort_monday 					: str
 	confort_tuesday 				: str
 	confort_wednesday 				: str
@@ -117,7 +118,7 @@ class notPilotedHeaterType:
 	confort_sunday 					: str
 
 def get_elfe_not_piloted_heater(credentials: Dict[str: str], timestamp: int, cohorte_id: str) -> List[notPilotedHeaterType]:
-	query = (sql.SQL("""SELECT 	heater.id, heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, heater.mesures_puissance_elec_id, usr.id,
+	query = (sql.SQL("""SELECT 	heater.id, heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, heater.mesures_puissance_elec_id, usr.id, epm.equipement_pilote_ou_mesure_type_id,
 				  				heater.confort_monday, heater.confort_tuesday, heater.confort_wednesday, heater.confort_thursday, heater.confort_friday, heater.confort_saturday, heater.confort_sunday
 				  		FROM {0} as heater
 				  		INNER JOIN {1} as epm ON epm.id = heater.equipement_pilote_ou_mesure_id

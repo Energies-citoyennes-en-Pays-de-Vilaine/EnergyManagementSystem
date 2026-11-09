@@ -80,7 +80,7 @@ def get_sum_consumer(timestamp : int, calculationParams: CalculationParams, coho
 		for day_name in ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]:
 			list_jour.append(Jour(getattr(heater, f"confort_{day_name}"), day_name))
 		calendrier_confort = Calendrier_confort(list_jour)
-		current_sum_consumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, calendrier_confort, curent_heater_previous_launches)
+		current_sum_consumer = SumConsumer(heater.equipement_pilote_ou_mesure_id, heater.puissance_moyenne_eco, heater.puissance_moyenne_confort, heater.pourcentage_eco_force, calendrier_confort, curent_heater_previous_launches, heater.machine_type_id)
 		to_return.append((heater.utilisateur, current_sum_consumer))
 	return to_return
 
