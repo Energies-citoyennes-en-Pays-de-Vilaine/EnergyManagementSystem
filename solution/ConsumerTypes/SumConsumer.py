@@ -23,7 +23,7 @@ class SumConsumer(Consumer_interface):
 		self.id = id
 		self.conso_low = conso_low
 		self.conso_high = conso_high
-		self.pourcentage_eco_consigne = pourcentage_eco / 100
+		self.pourcentage_eco_consigne = (100 - pourcentage_eco) / 100
 		self.calendrier = calendrier
 		self.lancement_45m_precedent = lancement_45m_precedent
 		self.consumer_machine_type = consumer_machine_type
