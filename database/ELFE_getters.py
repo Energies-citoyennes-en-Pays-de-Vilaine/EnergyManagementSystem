@@ -35,6 +35,19 @@ MODE_PILOTE = 30
 # 	print("[debug info machine]", result_typed)
 # 	return result_typed
 
+def get_machine_id_by_cohorte(credentials: Dict[str: str], cohorte_id: str) -> List[int]:
+	query = (sql.SQL("""SELECT epm.id
+				  		FROM {0} as epm
+				  		INNER JOIN {1} AS usr ON usr.id = epm.utilisateur
+				  		WHERE usr.cohorte = %s""").format(
+							  sql.Identifier(ELFE_database_names['ELFE_EquipementPilote']),
+							  sql.Identifier(ELFE_database_names['ELFE_Utilisateur'])
+			),
+			[cohorte_id])
+	result = fetch(credentials, query)
+	result_typed = [int(r[0]) for r in result]
+	return result_typed
+
 @dataclass
 class ECSToScheduleType():
 	Id             				: int

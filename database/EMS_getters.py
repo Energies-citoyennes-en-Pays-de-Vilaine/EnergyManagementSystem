@@ -5,11 +5,33 @@ from database.query import fetch
 from typing import Dict, Tuple
 from database.EMS_db_types import EMS_database_names
 from datetime import datetime, timedelta
+from credentials.db_credentials import db_credentials
 
 def get_equipment_started_last_round(db_credentials: Dict[str: str], timestamp: int, table_name: str) -> List[int]:
 	query_formatted = sql.SQL("SELECT machine_id FROM {} WHERE first_valid_timestamp=%s AND decisions_0=1").format(sql.Identifier(table_name))
 	result = fetch(db_credentials, (query_formatted, [timestamp]))
 	return [int(i[0]) for i in result]
+
+@dataclass
+class previous_ECS_decision:
+	first_valid_timestamp : int
+	machine_id : int
+	result_type : int
+	machine_type : int
+	decisions : List[int]
+
+def get_previous_ECS_decisions(timestamp: int, step_size: int) -> List[previous_ECS_decision]:
+	query_formatted = sql.SQL("SELECT * from result_ecs AS ecs WHERE first_valid_timestamp>=%s AND decisions_0=1")
+	result = fetch(db_credentials["EMS"], (query_formatted, [timestamp - 24*3600]))
+	#id first_valid_timestamp machine_id result_type machine_type duration decision_[0...191]
+	to_return = []
+	for r in result:
+		start = r[1]
+		duration_steps = r[5]
+		if start + duration_steps * step_size >= timestamp:
+			offset = (timestamp - start) // step_size
+			to_return.append(previous_ECS_decision(start, r[2], r[3], r[4], r[6+offset: 6+duration_steps]))
+	return to_return
 
 def get_heater_launches(credentials: Dict[str: str], timestamp: int) -> Dict[int, List[int]]:
 	start_timestamp = (datetime.fromtimestamp(timestamp) - timedelta(days=1)).timestamp()
@@ -56,5 +78,7 @@ def get_last_consumption(credentials: Dict[str: str], zabbix_id : int) -> int:
 		print("no last consumption known for consumer with id (index)", zabbix_id)
 	return last_consumption
 
-def get_consumer_activation_ratio_starting_at(credentials, consumer_id, first_valid_timestamp):
-	pass
+if __name__ == "__main__":
+	print("\n".join(map(str, get_previous_ECS_decisions(int(datetime.now().timestamp() // 900) * 900, 900))))
+	print("\n".join(map(str, get_previous_ECS_decisions(900 + int(datetime.now().timestamp() // 900) * 900, 900))))
+	print("\n".join(map(str, get_previous_ECS_decisions(1800 + int(datetime.now().timestamp() // 900) * 900, 900))))

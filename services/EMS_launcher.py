@@ -3,6 +3,8 @@ from elfe_interfaces.ELFE_data_gatherer import get_calculation_params, get_cohor
 from utils.time.timestamp import get_round_timestamp, get_timestamp, synchronise
 from database.EMS_db_types import EMSPowerCurveData, EMSResult, EMSResultEcs, EMSEnergyWeather
 from database.EMS_OUT_db_types import EMSRunInfo
+from database.EMS_getters import get_previous_ECS_decisions
+from database.ELFE_getters import get_machine_id_by_cohorte
 from database.query import fetch, execute_queries
 from credentials.db_credentials import db_credentials
 from solution.Calculation_Params import CalculationParams
@@ -53,6 +55,22 @@ if __name__ == "__main__":
 	utilisateurs: List[Utilisateur] = []
 
 	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id) #temp
+	machine_ids = get_machine_id_by_cohorte(db_credentials["ELFE"], cohorte_id)
+	previous_ECS_decisions = get_previous_ECS_decisions(timestamp, sim_params.step_size_s)
+	previous_results = []
+	temp_result_ECS : Dict[str: List[EMSResult]] = {}
+	for decision in previous_ECS_decisions:
+		if decision.machine_id in machine_ids:
+			decision_array = np.zeros(sim_params.simulation_size, np.float64)
+			for i in range(len(decision.decisions)):
+				decision_array[i] = decision.decisions[i]
+			result = EMSResult(0, round_start_timestamp, decision.machine_id, decision.result_type, decision.machine_type, decision_array)
+			previous_results.append(result)
+
+			if decision.machine_id not in temp_result_ECS.keys():
+				temp_result_ECS[decision.machine_id] = [result]
+			else:
+				temp_result_ECS[decision.machine_id].append(result)
 
 	# try:
 	# 	utilisateurs = get_utilisateurs(timestamp, sim_params, cohorte_id=cohorte_id)
@@ -65,6 +83,12 @@ if __name__ == "__main__":
 	if len(utilisateurs) == 0:
 		if ("EMS_SORTIE" in db_credentials):
 			write_energy_weather(np.zeros((sim_params.get_simulation_size(),), np.float64), cohorte_balance, 0)
+
+		queries = [result.get_append_in_table_str("result") for result in previous_results]
+		execute_queries(db_credentials["EMS"], queries)
+		if ("EMS_SORTIE" in db_credentials):
+			execute_queries(db_credentials["EMS_SORTIE"], queries)
+
 	else:
 		try:
 			problem = Problem(utilisateurs, sim_params, solar_expected_production, cohorte_balance_dict)
@@ -77,10 +101,9 @@ if __name__ == "__main__":
 			print("Erreur EMS launcher")
 			traceback.print_exc()
 			
-		decisions = problem.get_decisions()	
+		decisions = problem.get_decisions()
 		results = []
 		results_ECS = []
-		temp_result_ECS : Dict[str: List[EMSResult]] = {}
 		
 		for decision in decisions:
 			result_type = 0 if decision["reocurring"] == False else 1
