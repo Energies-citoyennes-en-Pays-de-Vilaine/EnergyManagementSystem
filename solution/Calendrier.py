@@ -27,7 +27,7 @@ class Jour:
 	def __repr__(self):
 		return ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"][self.weekday]
 		
-	def is_heure_creuse(self, step: datetime) -> bool:
+	def is_in_calendar(self, step: datetime) -> bool:
 		return any(datetime.combine(step.date(), t[0]) <= step <= (datetime.combine(step.date(), t[1]) - timedelta(seconds=1)) for t in self.periodes)
 	
 	def count_steps(self, start_timestamp: int, end_timestamp: int) -> int:
@@ -66,7 +66,7 @@ class Calendrier:
 		return " ".join(str(j) for j in self.jours.values())
 	
 	def is_in_calendar(self, step: datetime) -> bool:
-		return (step.weekday() in self.jours.keys()) and self.jours[step.weekday()].is_heure_creuse(step)
+		return (step.weekday() in self.jours.keys()) and self.jours[step.weekday()].is_in_calendar(step)
 
 	def is_in_calendar_timestamp(self, step: int) -> bool:
 		return self.is_in_calendar(datetime.fromtimestamp(step))		
@@ -131,7 +131,7 @@ class Calendrier_confort(Calendrier):
 class Calendrier_HPHC(Calendrier):
 	def __init__(self, jours):
 		super().__init__(jours)
-		self.is_heure_creuse = self.is_in_calendar
+		self.is_in_calendar = self.is_in_calendar
 
 if __name__ == "__main__":
 	jours = []
@@ -156,4 +156,4 @@ if __name__ == "__main__":
 	# WE_periods = c.get_confort_periods(int(datetime.combine(date(day=31, month=10, year=2026), time(0,0,0)).timestamp()))
 	# print(list(map(lambda x: (datetime.fromtimestamp(x[0]), datetime.fromtimestamp(x[1])), WE_periods)))
 	
-	# print(c.is_heure_creuse(datetime.combine(date=datetime.now().date(), time=time(hour=14, minute=00, second=00))))
+	# print(c.is_in_calendar(datetime.combine(date=datetime.now().date(), time=time(hour=14, minute=00, second=00))))
