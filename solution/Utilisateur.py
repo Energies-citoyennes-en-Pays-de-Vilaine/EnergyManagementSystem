@@ -67,7 +67,7 @@ class Utilisateur:
         user_block.E_TOT_limit = pyo.Constraint(steps, rule = E_TOT_limit)
 
     def is_step_HPHC(self, step) -> bool:
-        return self.calendrierHPHC.is_heure_creuse(dt.datetime.fromtimestamp(step))
+        return self.calendrierHPHC.is_in_calendar(dt.datetime.fromtimestamp(step))
     
     def get_sum_energy(self, user_block: pyo.Block, steps):
         poids = get_poids(self.cohorte_id)
