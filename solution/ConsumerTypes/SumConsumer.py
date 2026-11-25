@@ -40,19 +40,20 @@ class SumConsumer(Consumer_interface):
 		# print(f"%:{self.pourcentage_eco_consigne}, _-:{zone_passe}, n-:{self.nb_lancement_24h_precedent}, _+:{zone_futur}, n+:{self.nb_lancement_48h_suivant}")
 
 	def _create_consumer_variable(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
-		filter_calendrier = lambda m, x: self.calendrier.is_confort_timestamp(x)
+		periodes_chauffage = self.calendrier.get_confort_periods(calculationParams.begin)
+		all_period = []
+		for p in periodes_chauffage:
+			all_period.extend(p)
+
+		filter_calendrier = lambda m, x: x in all_period
 		consumerBlock.decision_set = pyo.RangeSet(calculationParams.begin, calculationParams.end, calculationParams.step_size_s, filter=filter_calendrier)
+		print(list(consumerBlock.decision_set), all_period)
 		consumerBlock.decisions = pyo.Var(consumerBlock.decision_set, domain = pyo.Binary)
 
 	def _create_consumer_constraint(self, consumerBlock: pyo.Block, calculationParams: CalculationParams) -> None:
 		periodes_chauffage = self.calendrier.get_confort_periods(calculationParams.begin)
 		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}")
 
-		# all_period = []
-		# for p in periodes_chauffage:
-		# 	all_period.extend(p)
-		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}\nperiod==timestamps: {all_period == [d for d in consumerBlock.decisions]}{[c for c in all_period if c not in consumerBlock.decisions]}")
-		
 		periode_timestamps_dict: Dict[int, List[int]] = {}
 		for periode in periodes_chauffage:
 			for i in range(max(1,len(periode) - 3)):
@@ -63,15 +64,14 @@ class SumConsumer(Consumer_interface):
 		def percentage_constraint(block: pyo.Block, t):
 			if t in periode_timestamps_dict.keys():
 				periode = periode_timestamps_dict[t]
-				periodes_values = [block.decisions[p] for p in periode if p > calculationParams.begin]
+				periodes_values = [block.decisions[p] for p in periode if p >= calculationParams.begin]
 				if len(periodes_values) == 0:
 					return pyo.Constraint.Feasible
-				previous_values = [1 if p in self.lancement_45m_precedent else 0 for p in periode if p <= calculationParams.begin]
+				previous_values = [1 if p in self.lancement_45m_precedent else 0 for p in periode if p < calculationParams.begin]
 				if len(previous_values) > 0:
 					goal = (self.pourcentage_eco_consigne * len(periode) - max(2, sum(previous_values)))
 				else:
 					goal = self.pourcentage_eco_consigne * len(periode)
-				# print(f"{t=} pv:{periodes_values} >= {goal=}")
 				return sum(periodes_values) >= goal
 			else:
 				return pyo.Constraint.Feasible

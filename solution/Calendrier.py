@@ -101,7 +101,7 @@ class Calendrier_confort(Calendrier):
 	def get_confort_periods(self, timestamp: int) -> List[List[int]]:
 		midnight_timestamp = int(datetime.combine(datetime.fromtimestamp(timestamp).date(), time(0, 0, 0)).timestamp())
 		timestamps = [midnight_timestamp - DAY_LENGTH, midnight_timestamp, midnight_timestamp + DAY_LENGTH, midnight_timestamp + 2 * DAY_LENGTH, timestamp + 3 * DAY_LENGTH]
-		begin_timestamp, end_timestamp = timestamp - step_size * 2, timestamp + DAY_LENGTH * 2
+		begin_timestamp, end_timestamp = timestamp - step_size * 3, timestamp + DAY_LENGTH * 2
 		timestamps = [begin_timestamp] + [t for t in timestamps if begin_timestamp < t < end_timestamp] + [end_timestamp]
 		# print(timestamps)
 

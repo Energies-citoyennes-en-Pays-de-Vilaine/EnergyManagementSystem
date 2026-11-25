@@ -73,7 +73,7 @@ def get_electric_vehicle(calculationParams: CalculationParams, cohorte_id: str) 
 def get_sum_consumer(timestamp : int, calculationParams: CalculationParams, cohorte_id: str = COHORTE_ID) -> List[Tuple[str, SumConsumer]]:
 	elfe_heaters: List[notPilotedHeaterType] = get_elfe_not_piloted_heater(db_credentials["ELFE"], timestamp, cohorte_id)
 	to_return : List[Tuple[str, SumConsumer]] = []
-	previous_launches = get_heater_launches(db_credentials, calculationParams.begin - calculationParams.step_size_s * 3)
+	previous_launches = get_heater_previous_launches(db_credentials, calculationParams.begin - calculationParams.step_size_s * 3)
 	for heater in elfe_heaters:
 		curent_heater_previous_launches = previous_launches[heater.equipement_pilote_ou_mesure_id] if heater.equipement_pilote_ou_mesure_id in previous_launches.keys() else []
 		list_jour : List[Jour] = []
