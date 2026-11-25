@@ -48,10 +48,10 @@ class SumConsumer(Consumer_interface):
 		periodes_chauffage = self.calendrier.get_confort_periods(calculationParams.begin)
 		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}")
 
-		all_period = []
-		for p in periodes_chauffage:
-			all_period.extend(p)
-		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}\nperiod==timestamps: {all_period == [d for d in consumerBlock.decisions]}")
+		# all_period = []
+		# for p in periodes_chauffage:
+		# 	all_period.extend(p)
+		# print(f"begin:{calculationParams.begin}\ntimestamps:{[d for d in consumerBlock.decisions]}\nperiodes:{periodes_chauffage}\nperiod==timestamps: {all_period == [d for d in consumerBlock.decisions]}{[c for c in all_period if c not in consumerBlock.decisions]}")
 		
 		periode_timestamps_dict: Dict[int, List[int]] = {}
 		for periode in periodes_chauffage:

@@ -35,15 +35,15 @@ def get_previous_ECS_decisions(timestamp: int, step_size: int) -> List[previous_
 
 def get_heater_launches(credentials: Dict[str: str], timestamp: int) -> Dict[int, List[int]]:
 	start_timestamp = (datetime.fromtimestamp(timestamp) - timedelta(days=1)).timestamp()
-	query_formatted = (sql.SQL("""	SELECT first_valid_timestamp, result.machine_id,
-						   			FROM {0} AS result
-						   			WHERE first_valid_timestamp>=%s
-						   			AND machine_type=%s
-						   			AND decisions_0=1""").format(
+	query_formatted = (sql.SQL("""	SELECT r.first_valid_timestamp, r.machine_id
+						   			FROM {0} AS r
+						   			WHERE r.first_valid_timestamp >= %s
+									AND r.decisions_0 = 1
+									AND r.machine_type = %s""").format(
 							   sql.Identifier(EMS_database_names['EMS_Result']),
 							   ),
 							   [start_timestamp, 151])
-	result = fetch(credentials, query_formatted)
+	result = fetch(credentials["EMS"], query_formatted)
 	to_return = {}
 	if result != None:
 		for timestamp, id in result:
